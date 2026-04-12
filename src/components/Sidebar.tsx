@@ -5,6 +5,7 @@ import {
   Target,
   FileText,
   Cog,
+  GraduationCap,
   Loader2,
   CalendarDays,
   CalendarRange,
