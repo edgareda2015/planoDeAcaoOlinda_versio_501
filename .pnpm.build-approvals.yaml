@@ -1,0 +1,4 @@
+allow-build:
+  - esbuild
+  - '@swc/core'
+  - core-js
