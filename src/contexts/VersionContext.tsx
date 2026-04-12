@@ -18,18 +18,20 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const fetchDefaultSemester = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('app_settings')
           .select('value')
           .eq('key', 'default_semester')
           .maybeSingle();
 
-        if (data && data.value && !isInitialized.current) {
-          // Se o usuário não tem nada no localStorage, ou se queremos forçar o padrão global
-          // Aqui optamos por respeitar o localStorage se já existir, 
-          // mas se não existir (primeira vez abrindo), usamos o padrão global.
-          if (!localStorage.getItem('app_version')) {
+        if (data?.value && !isInitialized.current) {
+          const lastSynced = localStorage.getItem('last_synced_global_version');
+          
+          // Se o valor global mudou desde a última vez que sincronizamos,
+          // ou se é a primeira vez abrindo o app, forçamos o padrão global.
+          if (data.value !== lastSynced || !localStorage.getItem('app_version')) {
             setActiveVersion(data.value);
+            localStorage.setItem('last_synced_global_version', data.value);
           }
           isInitialized.current = true;
         }
@@ -39,6 +41,31 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     fetchDefaultSemester();
+
+    // Inscreve para mudanças em tempo real na tabela de configurações
+    const channel = supabase
+      .channel('global-settings-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.default_semester'
+        },
+        (payload) => {
+          const newValue = (payload.new as any)?.value;
+          if (newValue) {
+            setActiveVersion(newValue);
+            localStorage.setItem('last_synced_global_version', newValue);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
