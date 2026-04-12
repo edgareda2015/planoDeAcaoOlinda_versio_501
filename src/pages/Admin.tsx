@@ -2,10 +2,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectorManager } from "@/components/SectorManager";
 import { ResponsibleManager } from "@/components/ResponsibleManager";
 import { useVersion } from "@/contexts/VersionContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarRange, CheckCircle2, ArrowRightLeft, Eye } from "lucide-react";
+import { useAppSettings, useUpdateAppSetting } from "@/hooks/useAppSettings";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarRange, CheckCircle2, ArrowRightLeft, Eye, Save, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Gera semestres dinamicamente de 2026 até 2035
 const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
@@ -18,12 +21,30 @@ const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
 
 const Admin = () => {
   const { activeVersion, setActiveVersion } = useVersion();
+  const { data: settings, isLoading: isLoadingSettings } = useAppSettings();
+  const updateSetting = useUpdateAppSetting();
 
   const handleVersionChange = (version: string) => {
     setActiveVersion(version);
     toast.success(`Semestre alterado para ${version}`, {
       description: "Todos os dados do sistema agora refletem o semestre selecionado.",
       icon: <ArrowRightLeft className="h-4 w-4" />,
+    });
+  };
+
+  const currentDefault = settings?.default_semester || "2026.1";
+
+  const handleSetDefault = () => {
+    updateSetting.mutate({ 
+      key: 'default_semester', 
+      value: activeVersion 
+    }, {
+      onSuccess: () => {
+        toast.success("Configuração Global Atualizada", {
+          description: `O semestre ${activeVersion} agora é o padrão para todos os usuários ao abrirem o sistema.`,
+          icon: <Save className="h-4 w-4" />,
+        });
+      }
     });
   };
 
@@ -149,6 +170,39 @@ const Admin = () => {
                 </button>
               </div>
             </CardContent>
+
+            <CardFooter className="bg-muted/30 border-t border-border mt-6 p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400">
+                    <Settings2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Configuração Global</p>
+                    {isLoadingSettings ? (
+                      <Skeleton className="h-4 w-32 mt-1" />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        O padrão atual do sistema é: <span className="font-bold text-foreground">{currentDefault}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSetDefault}
+                  disabled={updateSetting.isPending || activeVersion === 'all' || activeVersion === currentDefault}
+                  variant="outline"
+                  className={cn(
+                    "w-full md:w-auto gap-2 border-primary/50 text-primary hover:bg-primary hover:text-white transition-all",
+                    activeVersion === currentDefault && "opacity-50 grayscale cursor-not-allowed"
+                  )}
+                >
+                  <Save className="h-4 w-4" />
+                  Definir {activeVersion} como Padrão Global
+                </Button>
+              </div>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

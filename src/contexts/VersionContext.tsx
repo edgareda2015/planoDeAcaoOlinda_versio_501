@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type VersionContextType = {
   activeVersion: string;
@@ -11,6 +12,34 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeVersion, setActiveVersion] = useState<string>(() => {
     return localStorage.getItem('app_version') || '2026.1';
   });
+  const isInitialized = useRef(false);
+
+  // Busca a configuração global do semestre inicial
+  useEffect(() => {
+    const fetchDefaultSemester = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'default_semester')
+          .maybeSingle();
+
+        if (data && data.value && !isInitialized.current) {
+          // Se o usuário não tem nada no localStorage, ou se queremos forçar o padrão global
+          // Aqui optamos por respeitar o localStorage se já existir, 
+          // mas se não existir (primeira vez abrindo), usamos o padrão global.
+          if (!localStorage.getItem('app_version')) {
+            setActiveVersion(data.value);
+          }
+          isInitialized.current = true;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar semestre padrão:', err);
+      }
+    };
+
+    fetchDefaultSemester();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('app_version', activeVersion);
