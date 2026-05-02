@@ -5,7 +5,11 @@ Este documento detalha o funcionamento técnico da arquitetura de acesso e gest�
 ## 1. Arquitetura de Autenticação
 O sistema utiliza uma arquitetura híbrida entre **Clerk** (Identidade e Autenticação) e **Supabase** (Banco de Dados e Regras de Negócio).
 
-### Fluxo de Login
+### 1.1 Localização e Comunicação
+*   **Interface em Português**: O front-end utiliza `@clerk/localizations` (pt-BR) para garantir que todos os componentes de autenticação estejam no idioma nativo.
+*   **E-mails Personalizados**: Todos os e-mails automáticos do Clerk (Redefinição de senha, Códigos de verificação, Confirmação de alteração, Convites) foram traduzidos e personalizados para garantir uma comunicação clara e profissional com o usuário final.
+
+### 1.2 Fluxo de Login
 1.  O usuário se autentica via Clerk (`Login.tsx`).
 2.  O `AuthContext.tsx` captura o token JWT do Clerk.
 3.  O sistema valida se o usuário possui um perfil na tabela `public.profiles` do Supabase.
@@ -56,8 +60,9 @@ Localizadas em `supabase/functions/`, estas funções realizam a ponte entre Sup
 
 ## 7. Banco de Dados (Supabase)
 *   **Estrutura Central**: Tabelas como `profiles`, `actions`, `goals` e `useful_links` formam a base.
+*   **Sincronização Automática (Dia a Dia -> Metas)**: Implementada uma **Trigger SQL** (`trigger_update_goal_achieved_quantity`) que monitora a tabela `daily_achievements`. Sempre que um lançamento diário é inserido, editado ou excluído, o sistema recalcula automaticamente a soma e atualiza o campo `achieved_quantity` na tabela `goals` correspondente ao setor, unidade e período. Isso elimina a necessidade de dupla digitação pelo usuário.
 *   **Status Padronizado**: As ações possuem status rigorosamente tipados (`planning`, `partial`, `completed`, `cancelled`).
 *   **Segurança (RLS)**: Preparado para implementação futura de regras rigorosas, com funções auxiliares como `is_admin()`.
 
 ---
-*Documentação atualizada em: 01 de Maio de 2026*
+*Documentação atualizada em: 02 de Maio de 2026*
