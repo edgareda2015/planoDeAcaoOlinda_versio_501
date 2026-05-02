@@ -13,11 +13,12 @@ interface LinkModalProps {
   link?: UsefulLink | null;
   isOpen: boolean;
   onClose: () => void;
+  activeUnitId: string | 'all';
 }
 
-export const LinkModal = ({ link, isOpen, onClose }: LinkModalProps) => {
+export const LinkModal = ({ link, isOpen, onClose, activeUnitId }: LinkModalProps) => {
   const isEditMode = !!link;
-  const { mutate: addLink, isPending: isAdding } = useAddUsefulLink();
+  const { mutate: addLink, isPending: isAdding } = useAddUsefulLink(activeUnitId);
   const { mutate: updateLink, isPending: isUpdating } = useUpdateUsefulLink();
 
   const form = useForm<LinkFormValues>({

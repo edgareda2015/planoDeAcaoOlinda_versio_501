@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useUsefulLinks, UsefulLink, useDeleteUsefulLink } from "@/hooks/useUsefulLinks";
+import { useVersion } from "@/contexts/VersionContext";
 import { LinkModal } from "@/components/LinkModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,8 @@ import {
 import { Loader2, XCircle, PlusCircle, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 const LinksUteis = () => {
-  const { data: links, isLoading, isError } = useUsefulLinks();
+  const { activeUnitId } = useVersion();
+  const { data: links, isLoading, isError } = useUsefulLinks(activeUnitId);
   const { mutate: deleteLink, isPending: isDeleting } = useDeleteUsefulLink();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -123,7 +125,7 @@ const LinksUteis = () => {
         )}
       </div>
 
-      <LinkModal isOpen={isModalOpen} onClose={handleCloseModal} link={editingLink} />
+      <LinkModal isOpen={isModalOpen} onClose={handleCloseModal} link={editingLink} activeUnitId={activeUnitId} />
 
       <AlertDialog open={!!linkToDelete} onOpenChange={(open) => !open && setLinkToDelete(null)}>
         <AlertDialogContent>

@@ -10,16 +10,23 @@ export interface UsefulLink {
   title: string;
   url: string;
   created_at: string;
+  unit_id?: string | null;
 }
 
 // --- Funções de API ---
-const fetchUsefulLinks = async (): Promise<UsefulLink[]> => {
-  const { data, error } = await supabase.from("useful_links").select("*").order("created_at", { ascending: false });
+const fetchUsefulLinks = async (unitId: string | 'all'): Promise<UsefulLink[]> => {
+  let query = supabase.from("useful_links").select("*").order("created_at", { ascending: false });
+  
+  if (unitId !== 'all') {
+    query = query.eq('unit_id', unitId);
+  }
+  
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data;
 };
 
-const insertUsefulLink = async (linkData: LinkFormValues) => {
+const insertUsefulLink = async (linkData: LinkFormValues & { unit_id: string | null }) => {
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("useful_links").insert({ ...linkData, user_id: user?.id }).select().single();
   if (error) throw new Error(error.message);
@@ -40,14 +47,20 @@ const deleteUsefulLink = async (linkId: string) => {
 };
 
 // --- Hooks ---
-export const useUsefulLinks = () => {
-  return useQuery<UsefulLink[], Error>({ queryKey: ["useful_links"], queryFn: fetchUsefulLinks });
+export const useUsefulLinks = (unitId: string | 'all') => {
+  return useQuery<UsefulLink[], Error>({ 
+    queryKey: ["useful_links", unitId], 
+    queryFn: () => fetchUsefulLinks(unitId) 
+  });
 };
 
-export const useAddUsefulLink = () => {
+export const useAddUsefulLink = (unitId: string | 'all') => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: insertUsefulLink,
+    mutationFn: (linkData: LinkFormValues) => insertUsefulLink({ 
+      ...linkData, 
+      unit_id: unitId === 'all' ? null : unitId 
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["useful_links"] });
       toast.success("Link adicionado com sucesso!");
