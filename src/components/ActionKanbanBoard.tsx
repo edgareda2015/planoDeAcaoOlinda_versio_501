@@ -29,7 +29,7 @@ const columnConfig: Record<KanbanColumn, { statuses: ActionStatus[], className: 
 
 const columnHeaderConfig: Record<KanbanColumn, { className: string }> = {
   "A FAZER": { className: "bg-destructive text-destructive-foreground shadow-sm" },
-  "FAZENDO": { className: "bg-warning text-warning-foreground shadow-sm" },
+  "FAZENDO": { className: "bg-yellow-500 text-white shadow-sm" },
   "CANCELADO": { className: "bg-slate-500 text-white shadow-sm" },
   "FINALIZADO": { className: "bg-accent text-accent-foreground shadow-sm" },
 };
