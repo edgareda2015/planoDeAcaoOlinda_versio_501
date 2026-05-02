@@ -7,7 +7,7 @@ O sistema utiliza uma arquitetura híbrida entre **Clerk** (Identidade e Autenti
 
 ### 1.1 Localização e Comunicação
 *   **Interface em Português**: O front-end utiliza `@clerk/localizations` (pt-BR) para garantir que todos os componentes de autenticação estejam no idioma nativo.
-*   **E-mails Personalizados**: Todos os e-mails automáticos do Clerk (Redefinição de senha, Códigos de verificação, Confirmação de alteração, Convites) foram traduzidos e personalizados para garantir uma comunicação clara e profissional com o usuário final.
+*   **E-mails Personalizados e Premium**: Todos os e-mails automáticos do Clerk (Redefinição de senha, Códigos de verificação, Confirmação de alteração, Convites) foram traduzidos e redesenhados com um padrão visual de alta qualidade. Utiliza-se **Inline CSS** para garantir que o design (cabeçalhos coloridos, boxes de código destacados) seja renderizado corretamente em todos os clientes de e-mail (Gmail, Outlook, etc).
 
 ### 1.2 Fluxo de Login
 1.  O usuário se autentica via Clerk (`Login.tsx`).
