@@ -95,12 +95,29 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Debug no console para o usuário
     console.log(`Estado Global -> Semestre: ${activeVersion}, Unidade: ${activeUnitId}`);
 
-    let primaryColor = '221 83% 53%'; 
+    // Paleta de cores mais sólidas, corporativas e elegantes (Sat: 40-70%, Lum: 35-50%)
+    const professionalPalettes = [
+      "222 47% 31%", // Deep Slate / Navy
+      "160 50% 38%", // Forest Emerald
+      "260 40% 45%", // Deep Violet
+      "25 65% 45%",  // Burnt Orange
+      "180 70% 30%", // Teal
+      "340 55% 45%", // Crimson
+      "205 60% 40%", // Steel Blue
+      "45 70% 40%",  // Muted Gold
+    ];
+
+    let primaryColor = "222 47% 31%"; // Cor padrão (Navy)
 
     if (activeVersion !== 'all' && activeVersion !== 'todos') {
-      const versionNum = parseInt(activeVersion.replace(/[^0-9]/g, '')) || 1;
-      const h = (versionNum * 137.508) % 360;
-      primaryColor = `${Math.floor(h)} 83% 53%`; 
+      // Cria um hash combinando a versão e a unidade para gerar uma cor única, mas sólida
+      const combinedStr = `${activeVersion}-${activeUnitId}`;
+      let hash = 0;
+      for (let i = 0; i < combinedStr.length; i++) {
+        hash = combinedStr.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const paletteIndex = Math.abs(hash) % professionalPalettes.length;
+      primaryColor = professionalPalettes[paletteIndex];
     }
 
     const root = document.documentElement;
@@ -109,7 +126,7 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     const [h, s, l] = primaryColor.split(' ');
     const lNumeric = parseInt(l.replace('%', ''));
-    const glowL = `${Math.min(lNumeric + 10, 100)}%`;
+    const glowL = `${Math.min(lNumeric + 15, 90)}%`; // Brilho mais sutil
     const secondaryColor = `${h} ${s} ${glowL}`;
     
     root.style.setProperty('--gradient-primary', `linear-gradient(135deg, hsl(${primaryColor}) 0%, hsl(${secondaryColor}) 100%)`);
