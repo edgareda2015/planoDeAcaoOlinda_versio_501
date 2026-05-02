@@ -5,7 +5,6 @@ import {
   Target,
   FileText,
   Cog,
-  GraduationCap,
   Loader2,
   CalendarDays,
   CalendarRange,
@@ -13,6 +12,7 @@ import {
   ClipboardList,
   LogOut,
   User,
+  Users,
   Building,
   Star,
 } from "lucide-react";
@@ -23,6 +23,8 @@ import { useSectors } from "@/hooks/useGoals";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVersion } from "@/contexts/VersionContext";
+import { useUnits } from "@/hooks/useOrganization";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,10 +38,12 @@ const staticTopItems = [
   { icon: CalendarRange, label: "Mês a Mês", id: "monthly", href: "/mes-a-mes" },
   { icon: Link, label: "Links Úteis", id: "links", href: "/links-uteis" },
   { icon: BarChart3, label: "Dashboard", id: "dashboard", href: "/dashboard" },
-  { icon: ClipboardList, label: "Dashboard Apoio", id: "others", href: "/outros-setores" },
+  { icon: ClipboardList, label: "Dashboard de Ações", id: "regional-dashboard", href: "/outros-setores" },
 ];
 
 const staticBottomItem = { icon: Cog, label: "Gestão", id: "admin", href: "/admin" };
+
+import { UnitSelector } from "@/components/UnitSelector";
 
 // Configuração de cores para os grupos
 const colorConfig = {
@@ -67,52 +71,78 @@ const colorConfig = {
 
 export const SidebarContent = () => {
   const { data: sectors, isLoading } = useSectors();
-  const { profile, user } = useAuth();
-  const { activeVersion, setActiveVersion } = useVersion();
+  const { data: units } = useUnits();
+  const { profile, user, signOut } = useAuth();
+  const { activeVersion, activeUnitId } = useVersion();
   const navigate = useNavigate();
 
+  const currentUnitName = useMemo(() => {
+    if (profile?.role === 'admin' && activeUnitId === 'all') return "Visão Global";
+    const unit = units?.find(u => u.id === (activeUnitId || profile?.unit_id));
+    return unit?.name || "Minha Unidade";
+  }, [units, activeUnitId, profile]);
+
+  const currentSemester = useMemo(() => {
+    return activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion;
+  }, [activeVersion]);
+
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(`Erro ao sair: ${error.message}`);
-    } else {
+    try {
+      await signOut();
       navigate('/login');
       toast.success("Você saiu da sua conta.");
+    } catch (error: any) {
+      toast.error(`Erro ao sair: ${error.message}`);
     }
   };
 
   const matriculaItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => sector.type === 'matricula' && sector.name.toUpperCase() !== "ORGÂNICO")
+      ?.filter((sector) => {
+        const isType = sector.type === 'matricula';
+        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
+        const isAllowed = true; // Removida filtragem por coordenador
+        return isType && isNotOrganico && isAllowed;
+      })
       .map((sector) => ({
         icon: Building,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors]);
+  }, [sectors, profile]);
 
   const coordenacaoItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => sector.type === 'coordenacao' && sector.name.toUpperCase() !== "ORGÂNICO")
+      ?.filter((sector) => {
+        const isType = sector.type === 'coordenacao';
+        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
+        const isAllowed = true; // Removida filtragem por coordenador
+        return isType && isNotOrganico && isAllowed;
+      })
       .map((sector) => ({
-        icon: GraduationCap,
+        icon: Users,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors]);
+  }, [sectors, profile]);
 
   const administrativoItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => sector.type === 'administrativo' && sector.name.toUpperCase() !== "ORGÂNICO")
+      ?.filter((sector) => {
+        const isType = sector.type === 'administrativo';
+        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
+        const isAllowed = true; // Removida filtragem por coordenador
+        return isType && isNotOrganico && isAllowed;
+      })
       .map((sector) => ({
         icon: Star,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors]);
+  }, [sectors, profile]);
 
   // Função auxiliar para aplicar classes de link
   const getLinkClasses = (isActive: boolean, config: typeof colorConfig.main) => {
@@ -128,49 +158,54 @@ export const SidebarContent = () => {
       );
     }
     
-    // Classes para estado inativo e hover:
-    // Força o texto a ser a cor de foreground (escura no modo claro)
-    // Aplica o fundo de hover e garante que o texto permaneça escuro no hover
     return cn(
       buttonVariants({ variant: "ghost" }),
       baseClasses,
-      "text-foreground", // Garante que o texto seja escuro por padrão
+      "text-foreground",
       config.hoverBg,
-      "hover:text-foreground" // Garante que o texto permaneça escuro no hover
+      "hover:text-foreground"
     );
   };
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4 max-w-full">
-        <div className="flex items-center gap-3 px-2 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden bg-white shadow-sm border border-border">
-            <img 
-              src="/uninassau-logo.png" 
-              alt="UNINASSAU Logo" 
-              className="w-full h-full object-contain p-1"
-            />
-          </div>
-          <div className="overflow-hidden whitespace-nowrap">
-            <h1 className="text-sm font-bold text-foreground">UNINASSAU</h1>
-            <p className="text-[10px] text-muted-foreground uppercase">Olinda</p>
-          </div>
-        </div>
-        <div className="flex-shrink-0 pl-1">
-          {/* Versão do Sistema - Apenas Display decorativo */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full shadow-sm">
-            <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-bold text-primary tracking-tight">
-              {activeVersion === 'all' || activeVersion === 'todos' ? 'Vista Geral' : activeVersion}
-            </span>
+      <div className="flex flex-col gap-4 p-6 border-b border-border bg-gradient-to-b from-background to-secondary/20">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-md border border-border overflow-hidden">
+              <img 
+                src="/uninassau-logo.png" 
+                alt="UNINASSAU Logo" 
+                className="w-full h-full object-contain p-1.5"
+              />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-black text-foreground uppercase tracking-tighter leading-none">
+                Plano de Ação
+              </h1>
+              <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] mt-1">
+                Captação
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
+      <RoleGuard allowedRoles={['admin', 'diretor_regional']}>
+        <UnitSelector />
+      </RoleGuard>
+
       <div className="flex-grow overflow-y-auto">
         <nav className="space-y-1 p-4">
           {/* Main navigation (Amarelo/Warning) */}
-          {staticTopItems.map((item) => (
+          {staticTopItems
+            .filter(item => {
+              if (item.id === 'regional-dashboard') {
+                return profile?.role === 'admin' || profile?.role === 'diretor_regional';
+              }
+              return true;
+            })
+            .map((item) => (
             <NavLink
               key={item.id}
               to={item.href}
@@ -268,7 +303,7 @@ export const SidebarContent = () => {
         </nav>
       </div>
 
-      {/* Bottom section */}
+      {/* Seção inferior com Perfil e Logout */}
       <div className="border-t p-4 space-y-2">
         {profile && (
           <div className="flex items-center gap-3 rounded-md p-2">
@@ -279,28 +314,34 @@ export const SidebarContent = () => {
               </AvatarFallback>
             </Avatar>
             <div className="grid gap-0.5 text-xs overflow-hidden">
-              <div className="font-medium truncate">{profile.first_name} {profile.last_name}</div>
-              <div className="text-muted-foreground truncate">{user?.email}</div>
+              <div className="font-medium truncate">{profile?.first_name || 'Usuário'} {profile?.last_name || ''}</div>
+              <div className="text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</div>
             </div>
           </div>
         )}
         
-        <NavLink
-          to={staticBottomItem.href}
-          className={({ isActive }) =>
-            cn(
-              buttonVariants({ variant: isActive ? "default" : "ghost" }),
-              "w-full justify-start gap-3",
-              isActive && "shadow-md",
-              !isActive && "text-foreground hover:bg-secondary hover:text-foreground" // Garante visibilidade para o link de Gestão
-            )
-          }
-        >
-          <staticBottomItem.icon className="h-5 w-5" />
-          <span>{staticBottomItem.label}</span>
-        </NavLink>
+        <RoleGuard allowedRoles={['admin', 'diretor_unidade', 'diretor_regional']}>
+          <NavLink
+            to={staticBottomItem.href}
+            className={({ isActive }) =>
+              cn(
+                buttonVariants({ variant: isActive ? "default" : "ghost" }),
+                "w-full justify-start gap-3",
+                isActive && "shadow-md",
+                !isActive && "text-foreground hover:bg-secondary hover:text-foreground"
+              )
+            }
+          >
+            <staticBottomItem.icon className="h-5 w-5" />
+            <span>{staticBottomItem.label}</span>
+          </NavLink>
+        </RoleGuard>
 
-        <Button variant="ghost" className="w-full justify-start gap-3 text-foreground hover:bg-secondary hover:text-foreground" onClick={handleLogout}>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start gap-3 text-foreground hover:bg-secondary hover:text-foreground" 
+          onClick={handleLogout}
+        >
           <LogOut className="h-5 w-5" />
           <span>Sair</span>
         </Button>

@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { GoalFormValues } from "@/schemas/GoalSchema";
 import { toast } from "sonner";
 import { useVersion } from "@/contexts/VersionContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Tipos ---
 export interface Sector {
   id: string;
   name: string;
   type: 'matricula' | 'coordenacao' | 'administrativo';
+  unit_id?: string;
 }
 
 export interface Goal {
@@ -26,20 +28,30 @@ export interface Goal {
 // --- Funções de API ---
 
 // 1. Buscar Setores
-const fetchSectors = async (): Promise<Sector[]> => {
-  const { data, error } = await supabase.from("sectors").select("id, name, type").order("name");
+const fetchSectors = async (unitId?: string): Promise<Sector[]> => {
+  let query = supabase.from("sectors").select("id, name, type, unit_id");
+  
+  if (unitId && unitId !== 'all') {
+    query = query.eq("unit_id", unitId);
+  }
+
+  const { data, error } = await query.order("name");
   if (error) throw new Error(error.message);
   return data as Sector[];
 };
 
 // 2. Buscar Metas
-const fetchGoals = async (version: string): Promise<Goal[]> => {
+const fetchGoals = async (version: string, unitId: string): Promise<Goal[]> => {
   let query = supabase
     .from("goals")
     .select("*, sectors(id, name, type)");
 
   if (version !== 'all' && version !== 'todos') {
     query = query.eq("period_version", version);
+  }
+
+  if (unitId && unitId !== 'all') {
+    query = query.eq("unit_id", unitId);
   }
 
   const { data, error } = await query.order("period_start_date", { ascending: false });
@@ -49,7 +61,7 @@ const fetchGoals = async (version: string): Promise<Goal[]> => {
 };
 
 // 3. Inserir Meta (para a página de Metas)
-const insertGoal = async (goalData: GoalFormValues, version: string) => {
+const insertGoal = async (goalData: GoalFormValues, version: string, unitId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data, error } = await supabase.from("goals").insert({
@@ -61,6 +73,7 @@ const insertGoal = async (goalData: GoalFormValues, version: string) => {
     period_end_date: goalData.period_end_date.toISOString().split('T')[0],
     achieved_quantity: 0, // Novas metas sempre começam com 0
     period_version: version,
+    unit_id: unitId === 'all' ? null : unitId,
   }).select().single();
 
   if (error) throw new Error(error.message);
@@ -91,25 +104,35 @@ const deleteGoal = async (goalId: string) => {
 // --- Hooks ---
 
 export const useSectors = () => {
+  const { activeUnitId } = useVersion();
   return useQuery<Sector[], Error>({
-    queryKey: ["sectors"],
-    queryFn: fetchSectors,
+    queryKey: ["sectors", activeUnitId],
+    queryFn: () => fetchSectors(activeUnitId),
   });
 };
 
 export const useGoals = () => {
-  const { activeVersion } = useVersion();
+  const { activeVersion, activeUnitId } = useVersion();
   return useQuery<Goal[], Error>({
-    queryKey: ["goals", activeVersion],
-    queryFn: () => fetchGoals(activeVersion),
+    queryKey: ["goals", activeVersion, activeUnitId],
+    queryFn: () => fetchGoals(activeVersion, activeUnitId),
   });
 };
 
 export const useAddGoal = () => {
   const queryClient = useQueryClient();
-  const { activeVersion } = useVersion();
+  const { activeVersion, activeUnitId } = useVersion();
+  const { profile } = useAuth();
+  
   return useMutation<any, Error, GoalFormValues>({
-    mutationFn: (data: GoalFormValues) => insertGoal(data, activeVersion),
+    mutationFn: (data: GoalFormValues) => {
+      // Prioridade total para a unidade do perfil se for diretor
+      const effectiveUnitId = (profile?.role === 'diretor_unidade' && profile?.unit_id) 
+        ? profile.unit_id 
+        : activeUnitId;
+        
+      return insertGoal(data, activeVersion, effectiveUnitId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       toast.success("Meta cadastrada com sucesso!");
@@ -149,10 +172,11 @@ export const useDeleteGoal = () => {
 };
 
 export const useSectorIdByName = (name: string) => {
+  const { activeUnitId } = useVersion();
   return useQuery<string | undefined, Error>({
-    queryKey: ["sectorId", name],
+    queryKey: ["sectorId", name, activeUnitId],
     queryFn: async () => {
-      const sectors = await fetchSectors();
+      const sectors = await fetchSectors(activeUnitId);
       const sector = sectors.find(s => s.name.toUpperCase() === name.toUpperCase());
       return sector?.id;
     },

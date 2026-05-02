@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ActionFormValues } from "@/schemas/ActionSchema";
 import { toast } from "sonner";
 import { useVersion } from "@/contexts/VersionContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Tipos ---
 export interface Responsible {
@@ -12,7 +13,7 @@ export interface Responsible {
   avatar_url?: string;
 }
 
-export type ActionStatus = "planning" | "partial" | "completed" | "delayed" | "cancelled";
+export type ActionStatus = "planning" | "partial" | "completed" | "cancelled";
 
 export interface Action {
   id: string;
@@ -25,7 +26,9 @@ export interface Action {
   start_date: string | null;
   end_date: string | null;
   status: ActionStatus;
-  evidence_url: string | null;
+  observations: string | null;
+  expected_enrollment: number;
+  completed_enrollment: number;
   created_at: string;
   unidade: string | null; // Novo campo
   sectors: { name: string; type: 'matricula' | 'coordenacao' | 'administrativo' };
@@ -38,13 +41,17 @@ const fetchResponsibles = async (): Promise<Responsible[]> => {
   return data as Responsible[];
 };
 
-const fetchActions = async (version: string): Promise<Action[]> => {
+const fetchActions = async (version: string, unitId: string): Promise<Action[]> => {
   let query = supabase
     .from("actions")
     .select(`*, sectors(name, type)`);
     
   if (version !== 'all' && version !== 'todos') {
     query = query.eq("period_version", version);
+  }
+
+  if (unitId !== 'all') {
+    query = query.eq("unit_id", unitId);
   }
 
   const { data, error } = await query
@@ -54,7 +61,7 @@ const fetchActions = async (version: string): Promise<Action[]> => {
   return data as Action[];
 };
 
-const insertAction = async (actionData: ActionFormValues, version: string) => {
+const insertAction = async (actionData: ActionFormValues, version: string, unitId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("actions").insert({
     user_id: user?.id,
@@ -64,7 +71,10 @@ const insertAction = async (actionData: ActionFormValues, version: string) => {
     start_date: actionData.start_date ? actionData.start_date.toISOString().split('T')[0] : null,
     end_date: actionData.end_date ? actionData.end_date.toISOString().split('T')[0] : null,
     evidence_url: actionData.evidence_url || null,
+    expected_enrollment: actionData.expected_enrollment || 0,
+    completed_enrollment: actionData.completed_enrollment || 0,
     period_version: version,
+    unit_id: unitId === 'all' ? null : unitId,
   }).select().single();
   if (error) throw new Error(error.message);
   return data;
@@ -97,15 +107,47 @@ export const useResponsibles = () => {
 };
 
 export const useActions = () => {
+  const { activeVersion, activeUnitId } = useVersion();
+  return useQuery<Action[], Error>({ 
+    queryKey: ["actions", activeVersion, activeUnitId], 
+    queryFn: () => fetchActions(activeVersion, activeUnitId) 
+  });
+};
+
+export const useAllActions = () => {
   const { activeVersion } = useVersion();
-  return useQuery<Action[], Error>({ queryKey: ["actions", activeVersion], queryFn: () => fetchActions(activeVersion) });
+  return useQuery<Action[], Error>({ 
+    queryKey: ["actions-all", activeVersion], 
+    queryFn: async () => {
+      let query = supabase
+        .from("actions")
+        .select(`*, sectors(name, type)`);
+        
+      if (activeVersion !== 'all' && activeVersion !== 'todos') {
+        query = query.eq("period_version", activeVersion);
+      }
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data as Action[];
+    } 
+  });
 };
 
 export const useAddAction = () => {
   const queryClient = useQueryClient();
-  const { activeVersion } = useVersion();
+  const { activeVersion, activeUnitId } = useVersion();
+  const { profile } = useAuth();
+  
   return useMutation({
-    mutationFn: (data: ActionFormValues) => insertAction(data, activeVersion),
+    mutationFn: (data: ActionFormValues) => {
+      const effectiveUnitId = (profile?.role === 'diretor_unidade' && profile?.unit_id)
+        ? profile.unit_id
+        : activeUnitId;
+        
+      return insertAction(data, activeVersion, effectiveUnitId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actions"] });
       toast.success("Ação cadastrada com sucesso!");

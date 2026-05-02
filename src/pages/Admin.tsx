@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectorManager } from "@/components/SectorManager";
-import { ResponsibleManager } from "@/components/ResponsibleManager";
+import { OrganizationManager } from "@/components/OrganizationManager";
+import { AdminUsuarios } from "@/components/AdminUsuarios";
 import { useVersion } from "@/contexts/VersionContext";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/useAppSettings";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Gera semestres dinamicamente de 2026 até 2035
 const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
@@ -20,9 +22,19 @@ const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
 }).flat();
 
 const Admin = () => {
+  const { profile } = useAuth();
   const { activeVersion, setActiveVersion } = useVersion();
   const { data: settings, isLoading: isLoadingSettings } = useAppSettings();
   const updateSetting = useUpdateAppSetting();
+
+  const role = profile?.role || 'user';
+  const isAdmin = role === 'admin';
+  const isDiretorRegional = role === 'diretor_regional';
+  const isDiretorUnidade = role === 'diretor_unidade';
+  const isFullAccess = isAdmin || isDiretorRegional;
+  const canSeeSectors = isFullAccess || isDiretorUnidade;
+
+  const defaultTab = canSeeSectors ? "sectors" : "settings";
 
   const handleVersionChange = (version: string) => {
     setActiveVersion(version);
@@ -57,22 +69,37 @@ const Admin = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="sectors">
-        <TabsList className="grid w-full grid-cols-3 md:w-[600px]">
-          <TabsTrigger value="sectors">Setores</TabsTrigger>
-          <TabsTrigger value="responsibles">Responsáveis</TabsTrigger>
-          <TabsTrigger value="settings">Configurações</TabsTrigger>
+      <Tabs defaultValue={defaultTab}>
+        <TabsList className={cn(
+          "grid w-full md:w-[800px]",
+          isFullAccess ? "grid-cols-4" : (isDiretorUnidade ? "grid-cols-2" : "grid-cols-1")
+        )}>
+          {canSeeSectors && <TabsTrigger value="sectors">Setores</TabsTrigger>}
+          {isFullAccess && <TabsTrigger value="organization">Organização</TabsTrigger>}
+          {isFullAccess && <TabsTrigger value="users">Usuários</TabsTrigger>}
+          <TabsTrigger value="settings">TROCAR SEMESTRES</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="sectors">
-          <SectorManager />
-        </TabsContent>
+        {canSeeSectors && (
+          <TabsContent value="sectors">
+            <SectorManager />
+          </TabsContent>
+        )}
         
-        <TabsContent value="responsibles">
-          <ResponsibleManager />
-        </TabsContent>
+        {isFullAccess && (
+          <TabsContent value="organization">
+            <OrganizationManager />
+          </TabsContent>
+        )}
 
-        <TabsContent value="settings" className="space-y-6">
+        {isFullAccess && (
+          <TabsContent value="users">
+            <AdminUsuarios />
+          </TabsContent>
+        )}
+
+        {(isAdmin || isDiretorUnidade || isDiretorRegional) && (
+          <TabsContent value="settings" className="space-y-6">
           {/* Card principal do semestre ativo */}
           <Card className="border-primary/30 bg-gradient-to-br from-primary/5 via-background to-primary/10 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
@@ -205,7 +232,8 @@ const Admin = () => {
             </CardFooter>
           </Card>
         </TabsContent>
-      </Tabs>
+      )}
+    </Tabs>
     </div>
   );
 };

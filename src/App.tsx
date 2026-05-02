@@ -18,7 +18,9 @@ import MesAMes from "./pages/MesAMes";
 import LinksUteis from "./pages/LinksUteis";
 import OutrosSetores from "./pages/OutrosSetores";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { RoleGuard } from "./components/auth/RoleGuard";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,7 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
@@ -40,7 +43,14 @@ const App = () => (
                   <Route path="/outros-setores" element={<OutrosSetores />} />
                   <Route path="/metas" element={<Metas />} />
                   <Route path="/acoes" element={<Acoes />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <RoleGuard allowedRoles={['admin', 'diretor_unidade', 'diretor_regional']} fallback={<NotFound />}>
+                        <Admin />
+                      </RoleGuard>
+                    } 
+                  />
                   <Route path="/dia-a-dia" element={<DiaADia />} />
                   <Route path="/mes-a-mes" element={<MesAMes />} />
                   <Route path="/links-uteis" element={<LinksUteis />} />

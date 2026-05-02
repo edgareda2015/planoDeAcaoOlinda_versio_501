@@ -1,7 +1,7 @@
 import { Action, ActionStatus, useUpdateAction } from "@/hooks/useActions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
-import { Calendar, User, ClipboardCheck, Link as LinkIcon, Building, Tag } from "lucide-react";
+import { Calendar, User, ClipboardCheck, MessageSquare, Building, Tag, UserPlus, CheckCircle } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
@@ -20,11 +20,10 @@ interface ActionDetailViewProps {
 }
 
 const statusConfig: Record<ActionStatus, { label: string; className: string }> = {
-  planning: { label: "A Fazer", className: "bg-destructive text-destructive-foreground" },
-  partial: { label: "Pendente", className: "bg-amber-500 text-white" },
-  completed: { label: "Finalizado", className: "bg-accent text-accent-foreground" },
-  delayed: { label: "Atrasado", className: "bg-orange-500 text-white" },
-  cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
+  planning: { label: "A FAZER", className: "bg-destructive text-destructive-foreground" },
+  partial: { label: "FAZENDO", className: "bg-amber-500 text-white" },
+  completed: { label: "FINALIZADO", className: "bg-accent text-accent-foreground" },
+  cancelled: { label: "CANCELADO", className: "bg-muted text-muted-foreground" },
 };
 
 const DetailItem = ({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) => (
@@ -86,14 +85,18 @@ const ActionDetailContent = ({ action, onEdit, onClose }: { action: Action; onEd
             {action.responsible_name}
           </DetailItem>
           <DetailItem icon={Calendar} label="Prazo">
-            {action.start_date ? format(new Date(action.start_date), "dd/MM/yy") : "?"} - {action.end_date ? format(new Date(action.end_date), "dd/MM/yy") : "?"}
+            {action.start_date ? format(new Date(action.start_date.replace(/-/g, '/')), "dd/MM/yy") : "?"} - {action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), "dd/MM/yy") : "?"}
           </DetailItem>
-          <DetailItem icon={LinkIcon} label="Evidências">
-            {action.evidence_url ? (
-              <a href={action.evidence_url} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 break-all">
-                {action.evidence_url}
-              </a>
-            ) : null}
+          <div className="grid grid-cols-2 gap-4">
+            <DetailItem icon={UserPlus} label="Matr. Esperada">
+              {action.expected_enrollment || 0}
+            </DetailItem>
+            <DetailItem icon={CheckCircle} label="Matr. Concluída">
+              {action.completed_enrollment || 0}
+            </DetailItem>
+          </div>
+          <DetailItem icon={MessageSquare} label="Observações">
+            <p className="whitespace-pre-wrap">{action.observations}</p>
           </DetailItem>
         </div>
       </div>

@@ -13,10 +13,11 @@ export const ActionSchema = z.object({
     "planning", 
     "partial", 
     "completed", 
-    "delayed", 
     "cancelled"
   ], { message: "Selecione um status válido." }),
-  evidence_url: z.string().url({ message: "URL de evidência inválida." }).optional().or(z.literal("")),
+  observations: z.string().optional().or(z.literal("")),
+  expected_enrollment: z.coerce.number().min(0).default(0),
+  completed_enrollment: z.coerce.number().min(0).default(0),
 });
 
 export type ActionFormValues = z.infer<typeof ActionSchema>;

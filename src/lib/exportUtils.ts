@@ -9,9 +9,10 @@ import { ptBR } from "date-fns/locale";
 // Helper para formatar o status para um texto legível
 const formatStatus = (status: string) => {
   const statusMap: Record<string, string> = {
-    planning: "A Fazer",
-    partial: "Pendente",
-    completed: "Finalizado",
+    planning: "A FAZER",
+    partial: "FAZENDO",
+    completed: "FINALIZADO",
+    cancelled: "CANCELADO",
   };
   return statusMap[status] || status;
 };
@@ -30,6 +31,7 @@ export const exportToExcel = (actions: Action[], fileName: string = "plano-de-ac
     'Data Término': action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yyyy') : '-',
     'Responsável': action.responsible_name || 'N/A',
     'Status': formatStatus(action.status),
+    'Observações': action.observations || '',
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -45,6 +47,7 @@ export const exportToExcel = (actions: Action[], fileName: string = "plano-de-ac
     { wch: 15 }, // Data Término
     { wch: 25 }, // Responsável
     { wch: 15 }, // Status
+    { wch: 50 }, // Observações
   ];
   worksheet['!cols'] = cols;
 
@@ -67,7 +70,7 @@ export const exportToPdf = (actions: Action[], fileName: string = "plano-de-acao
     (a.sectors?.name || '').localeCompare(b.sectors?.name || '')
   );
 
-  const tableHead = [['Área', 'Ação', 'Como', 'Início', 'Término', 'Responsável', 'Status']];
+  const tableHead = [['Área', 'Ação', 'Como', 'Início', 'Término', 'Responsável', 'Status', 'Obs']];
   const tableBody = sortedActions.map(action => [
     action.sectors?.name || 'N/A',
     action.description,
@@ -76,6 +79,7 @@ export const exportToPdf = (actions: Action[], fileName: string = "plano-de-acao
     action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yy') : '-',
     action.responsible_name || 'N/A',
     formatStatus(action.status),
+    action.observations || '',
   ]);
 
   autoTable(doc, {
@@ -112,8 +116,9 @@ export const exportToPdf = (actions: Action[], fileName: string = "plano-de-acao
       2: { cellWidth: 'auto' }, // Como
       3: { cellWidth: 18 }, // Início
       4: { cellWidth: 18 }, // Término
-      5: { cellWidth: 30 }, // Responsável
-      6: { cellWidth: 20 }, // Status
+      5: { cellWidth: 25 }, // Responsável
+      6: { cellWidth: 15 }, // Status
+      7: { cellWidth: 35 }, // Obs
     },
   });
 

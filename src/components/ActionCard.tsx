@@ -15,11 +15,10 @@ interface ActionCardProps {
 }
 
 const statusConfig: Record<ActionStatus, { label: string; className: string; }> = {
-  planning: { label: "A Fazer", className: "bg-destructive text-destructive-foreground border-destructive/50" },
-  partial: { label: "Pendente", className: "bg-amber-500 text-white border-amber-500/50" },
-  completed: { label: "Finalizado", className: "bg-accent text-accent-foreground border-accent/50" },
-  delayed: { label: "Atrasado", className: "bg-orange-500 text-white border-orange-500/50" },
-  cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground border-muted/50" },
+  planning: { label: "A FAZER", className: "bg-destructive text-destructive-foreground border-destructive/50" },
+  partial: { label: "FAZENDO", className: "bg-amber-500 text-white border-amber-500/50" },
+  completed: { label: "FINALIZADO", className: "bg-accent text-accent-foreground border-accent/50" },
+  cancelled: { label: "CANCELADO", className: "bg-muted text-muted-foreground border-muted/50" },
 };
 
 export const ActionCard = ({ action, onClick, onEdit, onDelete }: ActionCardProps) => {
@@ -59,6 +58,20 @@ export const ActionCard = ({ action, onClick, onEdit, onDelete }: ActionCardProp
                 {action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yyyy') : 'N/A'}
               </span>
             </div>
+            {(action.expected_enrollment > 0) && (
+              <div className="mt-3 pt-3 border-t border-dashed">
+                <div className="flex justify-between items-center text-xs mb-1">
+                  <span className="font-medium text-foreground">Matrículas</span>
+                  <span className="text-muted-foreground">{action.completed_enrollment}/{action.expected_enrollment}</span>
+                </div>
+                <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-500" 
+                    style={{ width: `${Math.min(100, (action.completed_enrollment / action.expected_enrollment) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </div>
       </div>

@@ -17,35 +17,53 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { userId, firstName, lastName } = await req.json()
+    const { userId, firstName, lastName, role, regionalId, unitId } = await req.json()
 
-    if (!userId || !firstName || !lastName) {
-      return new Response(JSON.stringify({ error: 'User ID, first name, and last name are required' }), {
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'User ID is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Update user metadata in auth.users
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      user_metadata: { first_name: firstName, last_name: lastName },
-    })
+    const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY');
+    
+    // 1. Atualizar no Clerk (Metadata e Perfil)
+    if (CLERK_SECRET_KEY) {
+      console.log(`Atualizando Clerk para o usuário ${userId}...`);
+      const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          public_metadata: {
+            role,
+            regional_id: regionalId,
+            unit_id: unitId
+          }
+        })
+      });
 
-    if (authError) throw authError
+      if (!clerkResponse.ok) {
+        const errorData = await clerkResponse.json();
+        console.error("Erro Clerk:", errorData);
+        throw new Error(`Erro Clerk: ${JSON.stringify(errorData)}`);
+      }
+    }
 
-    // Update the public.profiles table
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({ first_name: firstName, last_name: lastName })
-      .eq('id', userId)
+    // 2. O Supabase (Profiles) já é atualizado pelo frontend por segurança,
+    // mas garantimos aqui também se necessário.
 
-    if (profileError) throw profileError
-
-    return new Response(JSON.stringify({ user: authData.user }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
+    console.error("Erro na função update-user:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

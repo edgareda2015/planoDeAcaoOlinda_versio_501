@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useVersion } from "@/contexts/VersionContext";
 
 // --- Tipos ---
 interface SectorFormValues {
@@ -25,11 +26,12 @@ interface UpdateResponsiblePayload extends ResponsibleFormValues {
 }
 
 // --- Funções de API (Setores) ---
-const insertSector = async (sectorData: SectorFormValues) => {
+const insertSector = async (sectorData: SectorFormValues, unitId: string) => {
   const { data, error } = await supabase.from("sectors").insert({ 
     name: sectorData.name, 
     description: sectorData.description || null,
     type: sectorData.type,
+    unit_id: unitId === 'all' ? null : unitId
   }).select().single();
   if (error) throw new Error(error.message);
   return data;
@@ -73,8 +75,9 @@ const deleteResponsible = async (responsibleId: string) => {
 // --- Hooks (Setores) ---
 export const useAddSector = () => {
   const queryClient = useQueryClient();
+  const { activeUnitId } = useVersion();
   return useMutation<any, Error, SectorFormValues>({
-    mutationFn: insertSector,
+    mutationFn: (data: SectorFormValues) => insertSector(data, activeUnitId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sectors"] });
       toast.success("Setor cadastrado com sucesso!");

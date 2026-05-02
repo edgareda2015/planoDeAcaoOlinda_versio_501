@@ -29,11 +29,10 @@ interface ActionModalProps {
 }
 
 const statusOptions = [
-  { value: "planning", label: "Planejamento" },
-  { value: "partial", label: "Parcial" },
-  { value: "completed", label: "Concluído" },
-  { value: "delayed", label: "Atrasado" },
-  { value: "cancelled", label: "Cancelado" },
+  { value: "planning", label: "A FAZER" },
+  { value: "partial", label: "FAZENDO" },
+  { value: "completed", label: "FINALIZADO" },
+  { value: "cancelled", label: "CANCELADO" },
 ];
 
 // Componente interno para os campos do formulário, evitando duplicação de código
@@ -96,19 +95,22 @@ const ActionFormFields = ({
           </FormItem>
         )}/>
       </div>
-      <FormField control={form.control} name="goal_id" render={({ field }) => (
-        <FormItem>
-          <FormLabel>Vincular à Meta</FormLabel>
-          <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-            <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
-            <SelectContent>
-              <SelectItem value="null">Nenhuma Meta</SelectItem>
-              {goals?.map((g) => <SelectItem key={g.id} value={g.id}>{g.sectors.name} - {g.target_quantity}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
-      )}/>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField control={form.control} name="expected_enrollment" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Matrícula Esperada</FormLabel>
+            <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )}/>
+        <FormField control={form.control} name="completed_enrollment" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Matrícula Concluída</FormLabel>
+            <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )}/>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField control={form.control} name="start_date" render={({ field }) => (
           <FormItem className="flex flex-col"><FormLabel>Data Início</FormLabel>
@@ -144,10 +146,10 @@ const ActionFormFields = ({
             <FormMessage />
           </FormItem>
         )}/>
-        <FormField control={form.control} name="evidence_url" render={({ field }) => (
+        <FormField control={form.control} name="observations" render={({ field }) => (
           <FormItem>
-            <FormLabel>Evidências (URL)</FormLabel>
-            <FormControl><Input placeholder="Link para anexos" {...field} /></FormControl>
+            <FormLabel>Observações / Resultados</FormLabel>
+            <FormControl><Textarea placeholder="Notas adicionais sobre o progresso ou resultados desta ação..." {...field} rows={3} /></FormControl>
             <FormMessage />
           </FormItem>
         )}/>
@@ -181,7 +183,9 @@ export const ActionModal = ({ action, isOpen, onClose }: ActionModalProps) => {
       how_to_do: "",
       responsible_name: "",
       status: "planning",
-      evidence_url: "",
+      observations: "",
+      expected_enrollment: 0,
+      completed_enrollment: 0,
     },
   });
 
@@ -193,7 +197,7 @@ export const ActionModal = ({ action, isOpen, onClose }: ActionModalProps) => {
         goal_id: action.goal_id || "null",
         how_to_do: action.how_to_do || "",
         responsible_name: action.responsible_name || "",
-        evidence_url: action.evidence_url || "",
+        observations: action.observations || "",
         start_date: action.start_date ? parseISO(action.start_date) : undefined,
         end_date: action.end_date ? parseISO(action.end_date) : undefined,
       });
@@ -206,7 +210,9 @@ export const ActionModal = ({ action, isOpen, onClose }: ActionModalProps) => {
         how_to_do: "",
         responsible_name: "",
         status: "planning",
-        evidence_url: "",
+        observations: "",
+        expected_enrollment: 0,
+        completed_enrollment: 0,
         start_date: undefined,
         end_date: undefined,
       });

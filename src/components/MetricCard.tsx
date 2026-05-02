@@ -38,16 +38,16 @@ export const MetricCard = ({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border bg-gradient-to-br p-6 transition-all hover:shadow-lg",
+        "relative overflow-hidden border bg-gradient-to-br p-4 md:p-6 transition-all hover:shadow-lg",
         variantStyles[variant]
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold text-foreground">{value}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1 md:space-y-2 flex-1">
+          <p className="text-[10px] md:text-sm font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
+          <p className="text-xl md:text-3xl font-bold text-foreground leading-none">{value}</p>
           {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <p className="text-[10px] md:text-sm text-muted-foreground line-clamp-1">{subtitle}</p>
           )}
           {trendValue && (
             <div className="flex items-center gap-1">

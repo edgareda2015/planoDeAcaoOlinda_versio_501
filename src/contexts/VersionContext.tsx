@@ -1,22 +1,34 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
 
 type VersionContextType = {
   activeVersion: string;
   setActiveVersion: (v: string) => void;
+  activeUnitId: string | 'all';
+  setActiveUnitId: (u: string | 'all') => void;
 };
 
 const VersionContext = createContext<VersionContextType | undefined>(undefined);
 
 export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { profile } = useAuth();
+  // Inicializa com 2026.1 como fallback seguro para Olinda
   const [activeVersion, setActiveVersion] = useState<string>(() => {
-    return localStorage.getItem('app_version') || '2026.1';
+    const saved = localStorage.getItem('app_version');
+    return (saved && saved !== 'undefined') ? saved : '2026.1';
   });
+  
+  const [activeUnitId, setActiveUnitId] = useState<string | 'all'>(() => {
+    const saved = localStorage.getItem('app_unit_id');
+    return (saved && saved !== 'undefined') ? saved : 'all';
+  });
+  
   const isInitialized = useRef(false);
 
-  // Busca a configuração global do semestre inicial
+  // Sincronização agressiva com o banco
   useEffect(() => {
-    const fetchDefaultSemester = async () => {
+    const fetchDefaultSettings = async () => {
       try {
         const { data } = await supabase
           .from('app_settings')
@@ -24,25 +36,21 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           .eq('key', 'default_semester')
           .maybeSingle();
 
-        if (data?.value && !isInitialized.current) {
-          const lastSynced = localStorage.getItem('last_synced_global_version');
-          
-          // Se o valor global mudou desde a última vez que sincronizamos,
-          // ou se é a primeira vez abrindo o app, forçamos o padrão global.
-          if (data.value !== lastSynced || !localStorage.getItem('app_version')) {
+        if (data?.value) {
+          console.log("Semestre padrão do banco:", data.value);
+          // Se é a primeira vez ou se o valor global mudou, forçamos a atualização
+          if (!isInitialized.current) {
             setActiveVersion(data.value);
-            localStorage.setItem('last_synced_global_version', data.value);
+            isInitialized.current = true;
           }
-          isInitialized.current = true;
         }
       } catch (err) {
-        console.error('Erro ao buscar semestre padrão:', err);
+        console.error('Erro ao buscar configurações globais:', err);
       }
     };
 
-    fetchDefaultSemester();
+    fetchDefaultSettings();
 
-    // Inscreve para mudanças em tempo real na tabela de configurações
     const channel = supabase
       .channel('global-settings-sync')
       .on(
@@ -56,8 +64,8 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         (payload) => {
           const newValue = (payload.new as any)?.value;
           if (newValue) {
+            console.log("Mudança em tempo real detectada:", newValue);
             setActiveVersion(newValue);
-            localStorage.setItem('last_synced_global_version', newValue);
           }
         }
       )
@@ -68,29 +76,37 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
+  // Restringe unidade baseado no Role
   useEffect(() => {
-    localStorage.setItem('app_version', activeVersion);
+    if (profile) {
+      if (profile.role === 'diretor_unidade') {
+        if (profile.unit_id && activeUnitId !== profile.unit_id) {
+          console.log(`Forçando unidade ${profile.unit_id} para role ${profile.role}`);
+          setActiveUnitId(profile.unit_id);
+        }
+      }
+    }
+  }, [profile, activeUnitId]);
+
+  useEffect(() => {
+    if (activeVersion) localStorage.setItem('app_version', activeVersion);
+    if (activeUnitId) localStorage.setItem('app_unit_id', activeUnitId);
     
-    let primaryColor = '221 83% 53%'; // Azul padrão
+    // Debug no console para o usuário
+    console.log(`Estado Global -> Semestre: ${activeVersion}, Unidade: ${activeUnitId}`);
+
+    let primaryColor = '221 83% 53%'; 
 
     if (activeVersion !== 'all' && activeVersion !== 'todos') {
-      // Extraímos apenas os números (ex: 2026.1 vira 20261)
       const versionNum = parseInt(activeVersion.replace(/[^0-9]/g, '')) || 1;
-      
-      // Técnica do Ângulo de Ouro (Golden Angle: ~137.508°)
-      // Isso garante uma distribuição máxima de cores para itens sequenciais no círculo cromático
       const h = (versionNum * 137.508) % 360;
-      
-      // Mantemos Saturação e Brilho constantes para manter a identidade visual do sistema
       primaryColor = `${Math.floor(h)} 83% 53%`; 
     }
 
-    // Atualiza as variáveis CSS no :root
     const root = document.documentElement;
     root.style.setProperty('--primary', primaryColor);
     root.style.setProperty('--ring', primaryColor);
     
-    // Cálculo do Glow (degradê)
     const [h, s, l] = primaryColor.split(' ');
     const lNumeric = parseInt(l.replace('%', ''));
     const glowL = `${Math.min(lNumeric + 10, 100)}%`;
@@ -99,10 +115,10 @@ export const VersionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     root.style.setProperty('--gradient-primary', `linear-gradient(135deg, hsl(${primaryColor}) 0%, hsl(${secondaryColor}) 100%)`);
     root.style.setProperty('--primary-glow', secondaryColor);
 
-  }, [activeVersion]);
+  }, [activeVersion, activeUnitId]);
 
   return (
-    <VersionContext.Provider value={{ activeVersion, setActiveVersion }}>
+    <VersionContext.Provider value={{ activeVersion, setActiveVersion, activeUnitId, setActiveUnitId }}>
       {children}
     </VersionContext.Provider>
   );

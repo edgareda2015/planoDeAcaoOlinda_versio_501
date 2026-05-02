@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSectors, Sector } from "@/hooks/useGoals";
 import { useAddSector, useUpdateSector, useDeleteSector } from "@/hooks/useAdmin";
+import { useVersion } from "@/contexts/VersionContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -38,10 +39,13 @@ const SectorSchema = z.object({
 type SectorFormValues = z.infer<typeof SectorSchema>;
 
 export const SectorManager = () => {
+  const { activeUnitId } = useVersion();
   const { data: sectors, isLoading } = useSectors();
   const { mutate: addSector, isPending: isAdding } = useAddSector();
   const { mutate: updateSector, isPending: isUpdating } = useUpdateSector();
   const { mutate: deleteSector, isPending: isDeleting } = useDeleteSector();
+
+  const isAllUnits = activeUnitId === 'all';
 
   const [editingSector, setEditingSector] = useState<Sector | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -53,6 +57,11 @@ export const SectorManager = () => {
   });
 
   const onSubmit = (values: SectorFormValues) => {
+    if (isAllUnits && !editingSector) {
+      toast.error("Selecione uma unidade específica para cadastrar um novo setor.");
+      return;
+    }
+    
     if (editingSector) {
       updateSector({ ...values, id: editingSector.id }, {
         onSuccess: () => {
@@ -61,7 +70,7 @@ export const SectorManager = () => {
         }
       });
     } else {
-      addSector(values, {
+      addSector({ ...values, unit_id: activeUnitId }, {
         onSuccess: () => form.reset(),
       });
     }
@@ -182,7 +191,7 @@ export const SectorManager = () => {
                   )}
                 />
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={isPending}>
+                  <Button type="submit" disabled={isPending || (isAllUnits && !editingSector)}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {editingSector ? "Salvar Alterações" : "Cadastrar"}
                   </Button>
@@ -192,6 +201,11 @@ export const SectorManager = () => {
                     </Button>
                   )}
                 </div>
+                {isAllUnits && !editingSector && (
+                  <p className="text-xs text-amber-600 font-medium mt-2">
+                    ⚠️ Selecione uma unidade no menu lateral para habilitar o cadastro.
+                  </p>
+                )}
               </form>
             </Form>
           </CardContent>

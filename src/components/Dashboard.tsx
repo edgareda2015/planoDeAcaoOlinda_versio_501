@@ -55,12 +55,23 @@ export const Dashboard = () => {
     );
   }
 
-  if (isError || !goals || !actions || !sectors || !achievements) {
+  if (isError || !sectors) {
     return (
       <Card className="p-6 text-destructive flex items-center justify-center min-h-[400px]">
         <XCircle className="h-5 w-5 mr-2" />
-        Erro ao carregar dados do dashboard. Tente novamente mais tarde.
+        Erro ao carregar dados do dashboard. Verifique sua conexão.
       </Card>
+    );
+  }
+
+  // Fallback para quando não há dados ainda
+  if (!goals || !actions || !achievements) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground p-8 text-center">
+        <Target className="h-12 w-12 mb-4 opacity-20" />
+        <h3 className="text-lg font-medium">Nenhum dado disponível</h3>
+        <p className="text-sm">Aguardando o cadastro de metas e ações para este período.</p>
+      </div>
     );
   }
 

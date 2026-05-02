@@ -26,14 +26,32 @@ serve(async (req) => {
       })
     }
 
-    // Delete the user from Supabase Auth
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY')
 
-    if (error) {
-      throw error
+    // 1. Deletar no Clerk
+    if (CLERK_SECRET_KEY) {
+      console.log(`Deletando usuário ${userId} do Clerk...`);
+      const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+        }
+      });
+      
+      // Se não encontrar no Clerk, ignoramos (já pode ter sido deletado)
+      if (!clerkResponse.ok && clerkResponse.status !== 404) {
+        const errorData = await clerkResponse.json();
+        throw new Error(`Erro Clerk: ${JSON.stringify(errorData)}`);
+      }
     }
 
-    // The profile in public.profiles will be deleted automatically via CASCADE constraint
+    // 2. Deletar no Supabase Profiles
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', userId)
+
+    if (profileError) throw profileError
 
     return new Response(JSON.stringify({ message: 'User deleted successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -24,6 +24,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Progress } from "@/components/ui/progress";
 import { ActionKanbanBoard } from "@/components/ActionKanbanBoard";
 import { cn } from "@/lib/utils";
+import { useVersion } from "@/contexts/VersionContext";
+import { useUnits } from "@/hooks/useOrganization";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Componente auxiliar para renderizar o conteúdo da aba de Ações
 const ActionTabContent = ({
@@ -77,6 +80,7 @@ const Acoes = () => {
   // --- State para Ações (Matrícula/Coordenação/Administrativo) ---
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const { profile } = useAuth();
   const { data: actions, isLoading: isLoadingActions, isError: isErrorActions } = useActions();
 
   // --- State para Principais Ações ---
@@ -183,6 +187,19 @@ const Acoes = () => {
       }
     }
   };
+
+  const { activeVersion, activeUnitId } = useVersion();
+  const { data: units } = useUnits();
+  
+  const currentUnitName = useMemo(() => {
+    if (profile?.role === 'admin' && activeUnitId === 'all') return "Visão Global";
+    const unit = units?.find(u => u.id === (activeUnitId || profile?.unit_id));
+    return unit?.name || "Minha Unidade";
+  }, [units, activeUnitId, profile]);
+
+  const currentSemester = useMemo(() => {
+    return activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion;
+  }, [activeVersion]);
 
   return (
     <div className="space-y-8">
