@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Search, Shield, Building, MapPin, Loader2, UserCog, RefreshCw } from "lucide-react";
+import { UserPlus, Search, Shield, Building, MapPin, Loader2, UserCog, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -214,6 +214,30 @@ export const AdminUsuarios = () => {
     },
     onError: (error: any) => {
       toast.error(`Erro na sincronização: ${error.message}`);
+    },
+  });
+
+  // Mutação para Excluir Usuário
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      console.log("Excluindo usuário:", userId);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+      });
+
+      if (error) {
+         console.error("Erro ao chamar delete-user:", error);
+         throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Usuário excluído com sucesso!");
+    },
+    onError: (error: any) => {
+      console.error("Erro ao excluir usuário:", error);
+      toast.error(`Erro: ${error.message}`);
     },
   });
 
@@ -502,6 +526,23 @@ export const AdminUsuarios = () => {
                       }}
                     >
                       <UserCog className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
+                      onClick={() => {
+                        if (window.confirm(`Tem certeza que deseja excluir o usuário ${user.first_name} ${user.last_name}? Esta ação não pode ser desfeita.`)) {
+                          deleteUserMutation.mutate(user.id);
+                        }
+                      }}
+                      disabled={deleteUserMutation.isPending}
+                    >
+                      {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
