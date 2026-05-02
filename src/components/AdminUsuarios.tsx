@@ -20,6 +20,16 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -55,6 +65,7 @@ export const AdminUsuarios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // Busca Usuários (Profiles)
@@ -234,10 +245,12 @@ export const AdminUsuarios = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("Usuário excluído com sucesso!");
+      setUserToDelete(null);
     },
     onError: (error: any) => {
       console.error("Erro ao excluir usuário:", error);
       toast.error(`Erro: ${error.message}`);
+      setUserToDelete(null);
     },
   });
 
@@ -531,12 +544,8 @@ export const AdminUsuarios = () => {
                       variant="ghost" 
                       size="sm" 
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
-                      onClick={() => {
-                        if (window.confirm(`Tem certeza que deseja excluir o usuário ${user.first_name} ${user.last_name}? Esta ação não pode ser desfeita.`)) {
-                          deleteUserMutation.mutate(user.id);
-                        }
-                      }}
-                      disabled={deleteUserMutation.isPending}
+                      onClick={() => setUserToDelete(user)}
+                      disabled={deleteUserMutation.isPending && deleteUserMutation.variables === user.id}
                     >
                       {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -681,6 +690,36 @@ export const AdminUsuarios = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Alerta de Exclusão */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário{" "}
+              <span className="font-semibold text-foreground">
+                {userToDelete?.first_name} {userToDelete?.last_name}
+              </span>{" "}
+              do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteUserMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteUserMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteUserMutation.mutate(userToDelete.id);
+              }}
+            >
+              {deleteUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sim, excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
