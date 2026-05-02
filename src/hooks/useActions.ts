@@ -70,7 +70,7 @@ const insertAction = async (actionData: ActionFormValues, version: string, unitI
     how_to_do: actionData.how_to_do || null,
     start_date: actionData.start_date ? actionData.start_date.toISOString().split('T')[0] : null,
     end_date: actionData.end_date ? actionData.end_date.toISOString().split('T')[0] : null,
-    evidence_url: actionData.evidence_url || null,
+    observations: actionData.observations || null,
     expected_enrollment: actionData.expected_enrollment || 0,
     completed_enrollment: actionData.completed_enrollment || 0,
     period_version: version,
