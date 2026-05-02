@@ -81,6 +81,7 @@ export const useUpsertDailyAchievement = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily_achievements"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
       toast.success("Lançamento diário salvo com sucesso!");
     },
     onError: (error) => {
