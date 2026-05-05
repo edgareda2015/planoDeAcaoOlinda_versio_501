@@ -1,4 +1,4 @@
-# 📚 Documentação do Sistema de Plano de Ação - Olinda (v5.0.1)
+# 📚 Documentação do Sistema de Plano de Ação - Olinda (v5.1.0)
 
 Este documento detalha o funcionamento técnico da arquitetura de acesso e gestão de usuários implementada.
 
@@ -9,11 +9,13 @@ O sistema utiliza uma arquitetura híbrida entre **Clerk** (Identidade e Autenti
 *   **Interface em Português**: O front-end utiliza `@clerk/localizations` (pt-BR) para garantir que todos os componentes de autenticação estejam no idioma nativo.
 *   **E-mails Personalizados e Premium**: Todos os e-mails automáticos do Clerk (Redefinição de senha, Códigos de verificação, Confirmação de alteração, Convites) foram traduzidos e redesenhados com um padrão visual de alta qualidade. Utiliza-se **Inline CSS** para garantir que o design (cabeçalhos coloridos, boxes de código destacados) seja renderizado corretamente em todos os clientes de e-mail (Gmail, Outlook, etc).
 
-### 1.2 Fluxo de Login
+### 1.2 Fluxo de Login Simplificado
 1.  O usuário se autentica via Clerk (`Login.tsx`).
-2.  O `AuthContext.tsx` captura o token JWT do Clerk.
-3.  O sistema valida se o usuário possui um perfil na tabela `public.profiles` do Supabase.
-4.  **Auto-Provisionamento**: Caso o usuário exista no Clerk mas não no Supabase, o sistema cria o perfil automaticamente, sincronizando e-mail, nomes e metadados.
+2.  **Acesso Direto**: Para garantir a agilidade operacional exigida pela rede, o fluxo de Segundo Fator (2FA/MFA) foi removido do processo de login padrão, permitindo entrada imediata com e-mail e senha.
+3.  **Recuperação de Senha**: O sistema mantém o fluxo de segurança apenas para casos de esquecimento de senha, enviando códigos de verificação via e-mail.
+4.  O `AuthContext.tsx` captura o token JWT do Clerk.
+5.  O sistema valida se o usuário possui um perfil na tabela `public.profiles` do Supabase.
+6.  **Auto-Provisionamento**: Caso o usuário exista no Clerk mas não no Supabase, o sistema cria o perfil automaticamente, sincronizando e-mail, nomes e metadados.
 
 ## 2. Gestão de Níveis de Acesso (Roles) e Isolamento
 O sistema possui 3 níveis de acesso definidos:
@@ -35,8 +37,9 @@ A tela de **Gestão > Usuários** (`AdminUsuarios.tsx`) permite o controle total
 *   **Editar Perfil**: Permite alterar o papel (role), a Regional e a Unidade do usuário. Suporta valores nulos para Regional e Unidade para administradores globais.
 *   **Exclusão Robusta**: Botão de lixeira acoplado a um `AlertDialog` nativo do sistema que remove o usuário completamente de ambas as bases de dados (Clerk e Supabase Profiles) via Edge Function, garantindo limpeza sem deixar rastros.
 
-## 4. Componentes UI / UX (Interface e Experiência)
-*   **Modais e Alertas Customizados**: Uso extensivo de componentes Radix/Shadcn UI (`AlertDialog`, `Dialog`) para substituir popups de navegador antigos (`window.confirm`), garantindo imersão e estética premium (Ex: Modal de exclusão de usuários e Modal de Links).
+## 4. Padronização Operacional e UI/UX
+*   **Renomeação do Setor Comercial**: O setor anteriormente identificado como "Matrícula" foi renomeado em todo o sistema para **"Comercial / QG"**, alinhando a nomenclatura digital à terminologia usada fisicamente nas unidades.
+*   **Modais e Alertas Customizados**: Uso extensivo de componentes Radix/Shadcn UI (`AlertDialog`, `Dialog`) para substituir popups de navegador antigos (`window.confirm`), garantindo imersão e estética premium.
 *   **Kanban Board**: Sistema Drag-and-Drop robusto para gestão visual de status das ações (`A FAZER`, `FAZENDO`, `CANCELADO`, `FINALIZADO`), com as cores dos cabeçalhos perfeitamente sincronizadas com a identidade das colunas para melhor ergonomia visual.
 
 ## 5. Dashboards de Monitoramento
@@ -44,11 +47,15 @@ A tela de **Gestão > Usuários** (`AdminUsuarios.tsx`) permite o controle total
 ### 5.1 Dashboard Principal (Individual)
 Focado no desempenho da unidade atual selecionada ou vinculada ao perfil do usuário.
 
-### 5.2 Dashboard de Ações (Consolidado)
-Substituiu o antigo "Dashboard de Apoio". Exclusivo para **Administradores** e **Diretores Regionais**.
-*   **Rankings**: Ranking de conversões (matrículas concluídas) e ranking de eficiência (% de conclusão).
+### 5.2 Dashboard de Ações (Funil de Vendas)
+Exclusivo para **Administradores** e **Diretores Regionais**, o dashboard foi atualizado para um modelo de 3 camadas:
+1.  **Lead Esperado**: Meta inicial de captação.
+2.  **Lead Real**: Volume de interessados captados durante a ação.
+3.  **Matrícula Efetivada**: Resultado final de conversão (venda concluída).
+
+*   **Rankings de Performance**: O ranking principal agora é baseado nas **Matrículas Efetivadas**, premiando as unidades que convertem melhor os leads em alunos reais.
+*   **Taxa de Conversão**: Calculada dinamicamente como `Matrículas Efetivadas / Lead Esperado`.
 *   **Alertas de Engajamento**: Identifica unidades com baixo volume de ações ou que ainda não iniciaram cadastros no período.
-*   **Visão de Gestor**: Filtra automaticamente os dados com base no vínculo do usuário (Admin vê tudo, Regional vê suas unidades).
 
 ## 6. Infraestrutura (Edge Functions)
 Localizadas em `supabase/functions/`, estas funções realizam a ponte entre Supabase e Clerk:
@@ -65,4 +72,4 @@ Localizadas em `supabase/functions/`, estas funções realizam a ponte entre Sup
 *   **Segurança (RLS)**: Preparado para implementação futura de regras rigorosas, com funções auxiliares como `is_admin()`.
 
 ---
-*Documentação atualizada em: 02 de Maio de 2026*
+*Documentação atualizada em: 05 de Maio de 2026*
