@@ -84,8 +84,9 @@ export const ActionKanbanBoard = ({ actions, onEditAction }: ActionKanbanBoardPr
     const total = actions.length;
     const expected = actions.reduce((acc, curr) => acc + (curr.expected_enrollment || 0), 0);
     const completed = actions.reduce((acc, curr) => acc + (curr.completed_enrollment || 0), 0);
-    const conversion = expected > 0 ? Math.round((completed / expected) * 100) : 0;
-    return { total, expected, completed, conversion };
+    const effective = actions.reduce((acc, curr) => acc + (curr.effective_enrollment || 0), 0);
+    const conversion = expected > 0 ? Math.round((effective / expected) * 100) : 0;
+    return { total, expected, completed, effective, conversion };
   }, [actions]);
 
   const topActions = useMemo(() => {
@@ -114,7 +115,7 @@ export const ActionKanbanBoard = ({ actions, onEditAction }: ActionKanbanBoardPr
     <>
       <div className="space-y-8 mb-8">
       {/* Dashboard Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Total de Ações"
           value={stats.total}
@@ -122,14 +123,20 @@ export const ActionKanbanBoard = ({ actions, onEditAction }: ActionKanbanBoardPr
           variant="default"
         />
         <MetricCard
-          title="Matrículas Esperadas"
+          title="Leads Esperados"
           value={stats.expected}
           icon={Target}
           variant="warning"
         />
         <MetricCard
-          title="Matrículas Concluídas"
+          title="Leads Reais"
           value={stats.completed}
+          icon={Activity}
+          variant="default"
+        />
+        <MetricCard
+          title="Matrículas Efetivadas"
+          value={stats.effective}
           icon={Users}
           variant="success"
         />
@@ -164,7 +171,7 @@ export const ActionKanbanBoard = ({ actions, onEditAction }: ActionKanbanBoardPr
                   <p className="text-[10px] text-muted-foreground uppercase font-medium">{action.sectors?.name}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-lg font-black text-primary leading-none">{action.completed_enrollment}</p>
+                  <p className="text-lg font-black text-primary leading-none">{action.effective_enrollment || 0}</p>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase">Matrículas</p>
                 </div>
               </div>

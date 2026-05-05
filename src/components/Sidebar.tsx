@@ -226,7 +226,7 @@ export const SidebarContent = () => {
                   colorConfig.matricula.activeBg,
                   colorConfig.matricula.activeText
                 )}>
-                  Matrícula
+                  Comercial / QG
                 </AccordionTrigger>
                 <AccordionContent className="pt-1">
                   {matriculaItems.map((item) => (

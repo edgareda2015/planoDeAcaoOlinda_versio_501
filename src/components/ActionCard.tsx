@@ -58,18 +58,24 @@ export const ActionCard = ({ action, onClick, onEdit, onDelete }: ActionCardProp
                 {action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yyyy') : 'N/A'}
               </span>
             </div>
-            {(action.expected_enrollment > 0) && (
-              <div className="mt-3 pt-3 border-t border-dashed">
-                <div className="flex justify-between items-center text-xs mb-1">
-                  <span className="font-medium text-foreground">Matrículas</span>
-                  <span className="text-muted-foreground">{action.completed_enrollment}/{action.expected_enrollment}</span>
+            {(action.expected_enrollment > 0 || (action.effective_enrollment ?? 0) > 0) && (
+              <div className="mt-3 pt-3 border-t border-dashed space-y-2">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-bold text-muted-foreground uppercase tracking-wider">Leads (Real / Esp.)</span>
+                  <span className="font-bold text-foreground">{action.completed_enrollment} / {action.expected_enrollment}</span>
                 </div>
                 <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
                   <div 
                     className="bg-primary h-full transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (action.completed_enrollment / action.expected_enrollment) * 100)}%` }}
+                    style={{ width: `${action.expected_enrollment > 0 ? Math.min(100, (action.completed_enrollment / action.expected_enrollment) * 100) : 0}%` }}
                   />
                 </div>
+                {(action.effective_enrollment ?? 0) > 0 && (
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Matrículas Efetivadas</span>
+                    <span className="text-sm font-bold text-primary">{action.effective_enrollment}</span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

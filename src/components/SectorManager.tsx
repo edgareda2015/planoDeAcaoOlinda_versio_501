@@ -110,7 +110,7 @@ export const SectorManager = () => {
 
   const getTypeLabel = (type: Sector['type']) => {
     switch (type) {
-      case 'matricula': return 'Matrícula';
+      case 'matricula': return 'Comercial / QG';
       case 'coordenacao': return 'Coordenação';
       case 'administrativo': return 'Ritual de Gestão';
       default: return 'Desconhecido';
@@ -167,7 +167,7 @@ export const SectorManager = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="matricula">Matrícula</SelectItem>
+                            <SelectItem value="matricula">Comercial / QG</SelectItem>
                             <SelectItem value="coordenacao">Coordenação</SelectItem>
                             <SelectItem value="administrativo">Ritual de Gestão</SelectItem>
                           </SelectContent>

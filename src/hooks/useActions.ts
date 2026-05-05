@@ -27,9 +27,10 @@ export interface Action {
   end_date: string | null;
   status: ActionStatus;
   observations: string | null;
-  expected_enrollment: number;
-  completed_enrollment: number;
-  created_at: string;
+   expected_enrollment: number;
+   completed_enrollment: number;
+   effective_enrollment: number;
+   created_at: string;
   unidade: string | null; // Novo campo
   sectors: { name: string; type: 'matricula' | 'coordenacao' | 'administrativo' };
 }
@@ -73,6 +74,7 @@ const insertAction = async (actionData: ActionFormValues, version: string, unitI
     observations: actionData.observations || null,
     expected_enrollment: actionData.expected_enrollment || 0,
     completed_enrollment: actionData.completed_enrollment || 0,
+    effective_enrollment: actionData.effective_enrollment || 0,
     period_version: version,
     unit_id: unitId === 'all' ? null : unitId,
   }).select().single();

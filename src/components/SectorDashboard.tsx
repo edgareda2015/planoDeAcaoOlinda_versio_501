@@ -81,7 +81,7 @@ export const SectorDashboard = ({ sectorId, sectorName, sectorType }: SectorDash
     }
   }
   
-  const typeLabel = sectorType === 'matricula' ? 'Matrícula' : sectorType === 'coordenacao' ? 'Coordenação' : 'Ritual de Gestão';
+  const typeLabel = sectorType === 'matricula' ? 'Comercial / QG' : sectorType === 'coordenacao' ? 'Coordenação' : 'Ritual de Gestão';
 
   return (
     <>

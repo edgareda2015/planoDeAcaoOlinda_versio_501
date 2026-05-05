@@ -1,7 +1,7 @@
 import { Action, ActionStatus, useUpdateAction } from "@/hooks/useActions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
-import { Calendar, User, ClipboardCheck, MessageSquare, Building, Tag, UserPlus, CheckCircle } from "lucide-react";
+import { Calendar, User, ClipboardCheck, MessageSquare, Building, Tag, UserPlus, CheckCircle, Activity } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
@@ -88,13 +88,16 @@ const ActionDetailContent = ({ action, onEdit, onClose }: { action: Action; onEd
             {action.start_date ? format(new Date(action.start_date.replace(/-/g, '/')), "dd/MM/yy") : "?"} - {action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), "dd/MM/yy") : "?"}
           </DetailItem>
           <div className="grid grid-cols-2 gap-4">
-            <DetailItem icon={UserPlus} label="Matr. Esperada">
+            <DetailItem icon={UserPlus} label="Lead Esperado">
               {action.expected_enrollment || 0}
             </DetailItem>
-            <DetailItem icon={CheckCircle} label="Matr. Concluída">
+            <DetailItem icon={Activity} label="Lead Real">
               {action.completed_enrollment || 0}
             </DetailItem>
           </div>
+          <DetailItem icon={CheckCircle} label="Matrícula Efetivada">
+            {action.effective_enrollment || 0}
+          </DetailItem>
           <DetailItem icon={MessageSquare} label="Observações">
             <p className="whitespace-pre-wrap">{action.observations}</p>
           </DetailItem>

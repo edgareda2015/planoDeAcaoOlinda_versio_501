@@ -16,8 +16,9 @@ export const ActionSchema = z.object({
     "cancelled"
   ], { message: "Selecione um status válido." }),
   observations: z.string().optional().or(z.literal("")),
-  expected_enrollment: z.coerce.number().min(0).default(0),
-  completed_enrollment: z.coerce.number().min(0).default(0),
-});
+   expected_enrollment: z.coerce.number().min(0).default(0),
+   completed_enrollment: z.coerce.number().min(0).default(0),
+   effective_enrollment: z.coerce.number().min(0).default(0),
+ });
 
 export type ActionFormValues = z.infer<typeof ActionSchema>;

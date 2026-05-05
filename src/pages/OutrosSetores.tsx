@@ -26,7 +26,7 @@ const RegionalDashboard = () => {
     const unitStats = filteredUnits.map(unit => {
       const actions = allActions.filter(a => a.unit_id === unit.id);
       const completed = actions.filter(a => a.status === 'completed').length;
-      const totalConversions = actions.reduce((sum, a) => sum + (a.completed_enrollment || 0), 0);
+      const totalConversions = actions.reduce((sum, a) => sum + (a.effective_enrollment || 0), 0);
       const expectedConversions = actions.reduce((sum, a) => sum + (a.expected_enrollment || 0), 0);
       
       return {
@@ -53,7 +53,7 @@ const RegionalDashboard = () => {
       notStarted,
       totals: {
         actions: allActions.length,
-        conversions: allActions.reduce((sum, a) => sum + (a.completed_enrollment || 0), 0),
+        conversions: allActions.reduce((sum, a) => sum + (a.effective_enrollment || 0), 0),
         unitsCount: filteredUnits.length,
       }
     };
@@ -101,9 +101,9 @@ const RegionalDashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-indigo-200" />
-              Ranking de Conversões
+              Ranking de Matrículas
             </CardTitle>
-            <CardDescription className="text-indigo-100/70">Unidades com maior número de matrículas concluídas.</CardDescription>
+            <CardDescription className="text-indigo-100/70">Unidades com maior número de matrículas efetivadas.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             {stats.rankingConversions.slice(0, 5).map((unit, index) => (
@@ -215,9 +215,9 @@ const RegionalDashboard = () => {
                   <th className="px-6 py-4">Unidade</th>
                   <th className="px-6 py-4 text-center">Total Ações</th>
                   <th className="px-6 py-4 text-center">Concluídas</th>
-                  <th className="px-6 py-4 text-center">Eficiência</th>
-                  <th className="px-6 py-4 text-center">Conversões</th>
-                  <th className="px-6 py-4 text-center">Status</th>
+                   <th className="px-6 py-4 text-center">Eficiência</th>
+                   <th className="px-6 py-4 text-center">Matrículas</th>
+                   <th className="px-6 py-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y">

@@ -221,7 +221,7 @@ const Acoes = () => {
               "transition-all duration-200 py-3"
             )}
           >
-            Matrícula
+            Comercial / QG
           </TabsTrigger>
           <TabsTrigger 
             value="coordenacao" 
@@ -262,7 +262,7 @@ const Acoes = () => {
         <ActionTabContent
           actions={matriculaActions}
           isLoading={isLoadingActions}
-          typeLabel="Matrícula"
+          typeLabel="Comercial / QG"
           handleOpenCreateActionModal={handleOpenCreateActionModal}
           handleOpenEditActionModal={handleOpenEditActionModal}
           handleExportExcel={handleExportExcel}

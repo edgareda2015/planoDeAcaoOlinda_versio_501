@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 // Schema Login
 const LoginSchema = z.object({
@@ -20,11 +20,7 @@ const LoginSchema = z.object({
 });
 type LoginFormValues = z.infer<typeof LoginSchema>;
 
-// Schema 2FA
-const TwoFactorSchema = z.object({
-  code: z.string().min(6, { message: 'O código deve ter 6 dígitos.' }).max(6),
-});
-type TwoFactorFormValues = z.infer<typeof TwoFactorSchema>;
+
 
 // Login Form Component
 const LoginForm = () => {
@@ -33,7 +29,6 @@ const LoginForm = () => {
   const from = location.state?.from?.pathname || "/acoes";
   const { isLoaded, signIn, setActive } = useSignIn();
   const [isPending, setIsPending] = useState(false);
-  const [needs2FA, setNeeds2FA] = useState(false);
   
   const translateError = (err: any) => {
     const msg = err.errors?.[0]?.message || err.message || "";
@@ -50,11 +45,6 @@ const LoginForm = () => {
     defaultValues: { email: '', password: '' },
   });
 
-  const tfaForm = useForm<TwoFactorFormValues>({
-    resolver: zodResolver(TwoFactorSchema),
-    defaultValues: { code: '' },
-  });
-
   const onLoginSubmit = async (values: LoginFormValues) => {
     if (!isLoaded) return;
     
@@ -69,16 +59,12 @@ const LoginForm = () => {
         await setActive({ session: result.createdSessionId });
         toast.success('Login realizado com sucesso!');
         navigate(from, { replace: true });
-      } else if (result.status === "needs_second_factor") {
-        // Usuário tem 2FA ativado — mostrar tela de código
-        setNeeds2FA(true);
-        toast.info('Verificação em duas etapas necessária.', {
-          description: 'Digite o código do seu aplicativo autenticador.',
-          icon: <ShieldCheck className="h-4 w-4" />,
-        });
       } else {
         console.log("Status do login:", result.status, result);
-        toast.error("Erro inesperado no login. Tente novamente.");
+        const statusMsg = result.status === "needs_second_factor" 
+          ? "Sua conta exige verificação no painel do Clerk (Client Trust). Por favor, desative essa opção no Clerk para entrar direto."
+          : `Status de login não suportado: ${result.status}`;
+        toast.error(statusMsg);
       }
     } catch (err: any) {
       console.error("Erro no login Clerk:", err);
@@ -88,118 +74,8 @@ const LoginForm = () => {
     }
   };
 
-  const on2FASubmit = async (values: TwoFactorFormValues) => {
-    if (!isLoaded || !signIn) return;
-    
-    setIsPending(true);
-    try {
-      const result = await signIn.attemptSecondFactor({
-        strategy: 'totp',
-        code: values.code,
-      });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        toast.success('Login realizado com sucesso!');
-        navigate(from, { replace: true });
-      } else {
-        console.log("Status 2FA:", result.status, result);
-        toast.error("Erro na verificação. Tente novamente.");
-      }
-    } catch (err: any) {
-      console.error("Erro 2FA:", err);
-      // Se TOTP falhar, tentar com email_code, phone_code ou backup_code
-      const strategies = ['email_code', 'phone_code', 'backup_code'];
-      let success = false;
 
-      for (const strategy of strategies) {
-        try {
-          const result = await signIn.attemptSecondFactor({
-            strategy: strategy as any,
-            code: values.code,
-          });
-          if (result.status === "complete") {
-            await setActive({ session: result.createdSessionId });
-            toast.success('Login realizado com sucesso!');
-            navigate(from, { replace: true });
-            success = true;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!success) {
-        toast.error("Código inválido ou expirado. Verifique seu e-mail ou autenticador.");
-      }
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const handleBack = () => {
-    setNeeds2FA(false);
-    tfaForm.reset();
-  };
-
-  // ---- Tela de 2FA ----
-  if (needs2FA) {
-    return (
-      <Form {...tfaForm}>
-        <form onSubmit={tfaForm.handleSubmit(on2FASubmit)} className="space-y-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Verificação em Duas Etapas</p>
-              <p className="text-xs text-muted-foreground">
-                Digite o código de 6 dígitos enviado para seu e-mail ou do seu autenticador.
-              </p>
-            </div>
-          </div>
-          
-          <FormField control={tfaForm.control} name="code" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Código de Verificação</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="000000"
-                  maxLength={6}
-                  autoFocus
-                  className="text-center text-2xl tracking-[0.5em] font-mono"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}/>
-          
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-xl shadow-lg transition-all active:scale-[0.98]"
-            disabled={isPending}
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Verificar e Entrar
-          </Button>
-          
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full text-muted-foreground"
-            onClick={handleBack}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar para o login
-          </Button>
-        </form>
-      </Form>
-    );
-  }
 
   // ---- Tela de Login Normal ----
   return (

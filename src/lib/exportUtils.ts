@@ -29,6 +29,9 @@ export const exportToExcel = (actions: Action[], fileName: string = "plano-de-ac
     'Como': action.how_to_do || 'N/A',
     'Data Início': action.start_date ? format(new Date(action.start_date.replace(/-/g, '/')), 'dd/MM/yyyy') : '-',
     'Data Término': action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yyyy') : '-',
+    'Lead Esperado': action.expected_enrollment,
+    'Lead Real': action.completed_enrollment,
+    'Matrícula Efetivada': action.effective_enrollment || 0,
     'Responsável': action.responsible_name || 'N/A',
     'Status': formatStatus(action.status),
     'Observações': action.observations || '',
@@ -43,8 +46,9 @@ export const exportToExcel = (actions: Action[], fileName: string = "plano-de-ac
     { wch: 20 }, // Área
     { wch: 50 }, // Ação
     { wch: 50 }, // Como
-    { wch: 15 }, // Data Início
-    { wch: 15 }, // Data Término
+    { wch: 15 }, // Lead Esperado
+    { wch: 15 }, // Lead Real
+    { wch: 18 }, // Matrícula Efetivada
     { wch: 25 }, // Responsável
     { wch: 15 }, // Status
     { wch: 50 }, // Observações
@@ -70,16 +74,15 @@ export const exportToPdf = (actions: Action[], fileName: string = "plano-de-acao
     (a.sectors?.name || '').localeCompare(b.sectors?.name || '')
   );
 
-  const tableHead = [['Área', 'Ação', 'Como', 'Início', 'Término', 'Responsável', 'Status', 'Obs']];
+  const tableHead = [['Área', 'Ação', 'Responsável', 'L. Esp.', 'L. Real', 'Matr. Ef.', 'Status']];
   const tableBody = sortedActions.map(action => [
     action.sectors?.name || 'N/A',
     action.description,
-    action.how_to_do || 'N/A',
-    action.start_date ? format(new Date(action.start_date.replace(/-/g, '/')), 'dd/MM/yy') : '-',
-    action.end_date ? format(new Date(action.end_date.replace(/-/g, '/')), 'dd/MM/yy') : '-',
     action.responsible_name || 'N/A',
+    action.expected_enrollment || 0,
+    action.completed_enrollment || 0,
+    action.effective_enrollment || 0,
     formatStatus(action.status),
-    action.observations || '',
   ]);
 
   autoTable(doc, {

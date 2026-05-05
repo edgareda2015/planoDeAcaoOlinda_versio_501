@@ -95,17 +95,24 @@ const ActionFormFields = ({
           </FormItem>
         )}/>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <FormField control={form.control} name="expected_enrollment" render={({ field }) => (
           <FormItem>
-            <FormLabel>Matrícula Esperada</FormLabel>
+            <FormLabel>Lead Esperado</FormLabel>
             <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )}/>
         <FormField control={form.control} name="completed_enrollment" render={({ field }) => (
           <FormItem>
-            <FormLabel>Matrícula Concluída</FormLabel>
+            <FormLabel>Lead Real</FormLabel>
+            <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )}/>
+        <FormField control={form.control} name="effective_enrollment" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Matrícula Efetivada</FormLabel>
             <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
@@ -186,6 +193,7 @@ export const ActionModal = ({ action, isOpen, onClose }: ActionModalProps) => {
       observations: "",
       expected_enrollment: 0,
       completed_enrollment: 0,
+      effective_enrollment: 0,
     },
   });
 
@@ -213,6 +221,7 @@ export const ActionModal = ({ action, isOpen, onClose }: ActionModalProps) => {
         observations: "",
         expected_enrollment: 0,
         completed_enrollment: 0,
+        effective_enrollment: 0,
         start_date: undefined,
         end_date: undefined,
       });
