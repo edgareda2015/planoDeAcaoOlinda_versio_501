@@ -63,6 +63,8 @@ const userFormSchema = z.object({
 
 export const AdminUsuarios = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegionalId, setSelectedRegionalId] = useState<string>("all");
+  const [selectedUnitId, setSelectedUnitId] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userToDelete, setUserToDelete] = useState<any>(null);
@@ -258,6 +260,12 @@ export const AdminUsuarios = () => {
     createUserMutation.mutate(values);
   };
 
+  const filteredUnitsForFilter = useMemo(() => {
+    if (!units) return [];
+    if (selectedRegionalId === "all") return units;
+    return units.filter(u => u.regional_id === selectedRegionalId);
+  }, [units, selectedRegionalId]);
+
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     return users.filter(u => {
@@ -265,24 +273,74 @@ export const AdminUsuarios = () => {
       const searchLower = searchTerm.toLowerCase();
       const emailMatch = u.email?.toLowerCase().includes(searchLower);
       const roleMatch = u.role?.toLowerCase().includes(searchLower);
-      return fullName.includes(searchLower) || emailMatch || roleMatch;
+      const matchesSearch = fullName.includes(searchLower) || emailMatch || roleMatch;
+
+      const matchesRegional = selectedRegionalId === "all" || u.regional_id === selectedRegionalId;
+      const matchesUnit = selectedUnitId === "all" || u.unit_id === selectedUnitId;
+
+      return matchesSearch && matchesRegional && matchesUnit;
     });
-  }, [users, searchTerm]);
+  }, [users, searchTerm, selectedRegionalId, selectedUnitId]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome ou papel..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col lg:flex-row justify-between gap-4 items-stretch lg:items-center bg-card p-4 rounded-xl border shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+          {/* Campo de Busca */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar por nome, e-mail ou papel..." 
+              className="pl-10 h-10 bg-background/50 hover:bg-background/80 focus:bg-background transition-colors"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Filtro de Regional */}
+          <Select 
+            value={selectedRegionalId} 
+            onValueChange={(value) => {
+              setSelectedRegionalId(value);
+              setSelectedUnitId("all"); // Reseta a unidade ao trocar a regional
+            }}
+          >
+            <SelectTrigger className="h-10 bg-background/50 hover:bg-background/80 transition-colors">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary/60" />
+                <SelectValue placeholder="Todas as Regionais" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Regionais</SelectItem>
+              {regionals?.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Filtro de Unidade */}
+          <Select 
+            value={selectedUnitId} 
+            onValueChange={setSelectedUnitId}
+            disabled={selectedRegionalId !== "all" && filteredUnitsForFilter.length === 0}
+          >
+            <SelectTrigger className="h-10 bg-background/50 hover:bg-background/80 transition-colors">
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-primary/60" />
+                <SelectValue placeholder="Todas as Unidades" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Unidades</SelectItem>
+              {filteredUnitsForFilter?.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full lg:w-auto justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 md:flex-none">
