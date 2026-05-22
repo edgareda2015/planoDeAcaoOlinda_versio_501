@@ -31,13 +31,63 @@ const LoginForm = () => {
   const [isPending, setIsPending] = useState(false);
   
   const translateError = (err: any) => {
+    console.error("Erro completo do Clerk no Login:", err);
     const msg = err.errors?.[0]?.message || err.message || "";
-    if (msg.includes("is incorrect")) return "E-mail ou senha incorretos.";
-    if (msg.includes("identifier is invalid")) return "E-mail inválido.";
-    if (msg.includes("Password is too short")) return "A senha é muito curta.";
-    if (msg.includes("is not valid")) return "Código de verificação inválido.";
-    if (msg.includes("expired")) return "Código expirado. Tente fazer login novamente.";
-    return "Erro ao realizar login. Verifique suas credenciais.";
+    const longMsg = err.errors?.[0]?.longMessage || "";
+    const code = err.errors?.[0]?.code || "";
+    
+    // 1. Limite mensal de e-mails do Clerk
+    if (msg.includes("monthly limit") || longMsg.includes("monthly limit")) {
+      return "O limite mensal de e-mails de teste em desenvolvimento foi atingido. Para continuar testando gratuitamente, use e-mails com '+clerk_test' (Ex: teste+clerk_test@dominio.com) e o código padrão 424242!";
+    }
+    
+    // 2. Senha incorreta ou dados incorretos
+    if (msg.includes("is incorrect") || code === "form_password_incorrect") {
+      return "E-mail ou senha incorretos. Por favor, tente novamente.";
+    }
+    
+    // 3. E-mail inválido
+    if (msg.includes("identifier is invalid") || code === "form_identifier_invalid") {
+      return "O formato do e-mail digitado é inválido.";
+    }
+    
+    // 4. Usuário não encontrado
+    if (msg.includes("not found") || code === "form_identifier_not_found") {
+      return "Este e-mail não está cadastrado em nosso sistema.";
+    }
+    
+    // 5. Muitas requisições (Rate Limit)
+    if (msg.includes("too many requests") || code === "too_many_requests") {
+      return "Muitas tentativas. Por favor, aguarde alguns minutos antes de tentar novamente.";
+    }
+    
+    // 6. Senha curta
+    if (msg.includes("Password is too short") || code === "form_password_length") {
+      return "A senha digitada é muito curta (deve ter no mínimo 8 caracteres).";
+    }
+    
+    // 7. Requisitos de senha fraca
+    if (msg.includes("pwned") || code === "form_password_pwned") {
+      return "Esta senha foi identificada como fraca ou vazada na internet. Por favor, escolha outra.";
+    }
+    
+    // 8. Código de verificação inválido ou incorreto
+    if (msg.includes("is not valid") || msg.includes("code is incorrect")) {
+      return "O código de verificação digitado é inválido ou está incorreto.";
+    }
+    
+    // 9. Código expirado
+    if (msg.includes("expired")) {
+      return "O código de verificação expirou. Por favor, solicite um novo código.";
+    }
+    
+    // 10. Conta bloqueada
+    if (msg.includes("locked") || code === "user_locked") {
+      return "Sua conta foi bloqueada temporariamente devido a muitas tentativas. Tente novamente mais tarde.";
+    }
+    
+    // Fallback amigável em português
+    return longMsg || msg || "Erro ao realizar login. Verifique suas credenciais.";
   };
 
   const loginForm = useForm<LoginFormValues>({

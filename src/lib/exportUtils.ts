@@ -64,7 +64,7 @@ export const exportToPdf = (actions: Action[], fileName: string = "plano-de-acao
     orientation: "landscape",
   });
 
-  let title = "Plano de Ação - UNINASSAU OLINDA";
+  let title = "Plano de Ação - UNINASSAU";
   if (sectorName) {
     title += ` - ${sectorName.toUpperCase()}`;
   }
@@ -270,7 +270,7 @@ export const exportKeyActionsToPdf = (actions: KeyAction[], fileName: string = "
     orientation: "landscape",
   });
 
-  doc.text("Principais Ações Comerciais - UNINASSAU OLINDA", 14, 16);
+  doc.text("Principais Ações Comerciais - UNINASSAU", 14, 16);
 
   const sortedActions = [...actions].sort((a, b) => 
     new Date(a.action_date.replace(/-/g, '/')).getTime() - new Date(b.action_date.replace(/-/g, '/')).getTime()
