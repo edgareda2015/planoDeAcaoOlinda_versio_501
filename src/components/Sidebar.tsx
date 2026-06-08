@@ -15,6 +15,7 @@ import {
   Users,
   Building,
   Star,
+  Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils";
@@ -37,6 +38,7 @@ const staticTopItems = [
   { icon: CalendarDays, label: "Dia a Dia", id: "daily", href: "/dia-a-dia" },
   { icon: CalendarRange, label: "Mês a Mês", id: "monthly", href: "/mes-a-mes" },
   { icon: Link, label: "Links Úteis", id: "links", href: "/links-uteis" },
+  { icon: Image, label: "Galeria de Evidências", id: "gallery", href: "/galeria" },
   { icon: BarChart3, label: "Dashboard", id: "dashboard", href: "/dashboard" },
   { icon: ClipboardList, label: "Dashboard de Ações", id: "regional-dashboard", href: "/outros-setores" },
 ];
