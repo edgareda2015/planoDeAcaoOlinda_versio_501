@@ -189,67 +189,6 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
   doc.text("Página 1", 282, 200, { align: "right" });
 
 
-  // --- SLIDE 2: DETALHES E METRICAS ---
-  doc.addPage();
-  
-  // Header Banner
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, 0, 297, 22, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("DETALHAMENTO DO ÁLBUM", 18, 14);
-  
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(album.title.toUpperCase(), 282, 14, { align: "right" });
-
-  // Layout: Full Width Texts (width = 260)
-  let textY = 38;
-  doc.setTextColor(50, 50, 50);
-
-  if (album.description) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Descrição do Álbum", 18, textY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    textY += 6;
-    const splitDesc = doc.splitTextToSize(album.description, 260);
-    doc.text(splitDesc, 18, textY);
-    textY += (splitDesc.length * 5) + 8;
-  }
-
-  if (album.action_result) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Resultado da Ação", 18, textY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    textY += 6;
-    const splitResult = doc.splitTextToSize(album.action_result, 260);
-    doc.text(splitResult, 18, textY);
-    textY += (splitResult.length * 5) + 8;
-  }
-
-  if (album.observations) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Observações", 18, textY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    textY += 6;
-    const splitObs = doc.splitTextToSize(album.observations, 260);
-    doc.text(splitObs, 18, textY);
-  }
-
-  // Slide 2 Footer
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 18, 200);
-  doc.text("Página 2", 282, 200, { align: "right" });
-
-
   // --- SLIDES SEGUINTES: GALERIA DE FOTOS (2 fotos lado a lado por página, sem esticar) ---
   if (album.photos && album.photos.length > 0) {
     const itemsPerPage = 2;
