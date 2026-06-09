@@ -134,6 +134,13 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
     format: "a4",
   });
 
+  let logoBase64: string | null = null;
+  try {
+    logoBase64 = await imageToBase64("/uninassau-logo.png");
+  } catch (err) {
+    console.error("Erro ao carregar logo no relatório individual:", err);
+  }
+
   const primaryColor = [26, 54, 93]; // Navy
   const secondaryColor = [74, 85, 104]; // Gray/Slate
 
@@ -142,15 +149,20 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, 8, 210, "F");
 
+  // Logo do sistema
+  if (logoBase64) {
+    await addFittedImage(doc, logoBase64, 18, 12, 38, 10);
+  }
+
   // Title & Metadata area on the Left (x = 18, width = 130)
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text("RELATÓRIO DE EVIDÊNCIA", 18, 25);
+  doc.text("RELATÓRIO DE EVIDÊNCIA", 18, 28);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text("UNINASSAU - Plano de Ação", 18, 30);
+  doc.text("UNINASSAU - Plano de Ação", 18, 33);
 
   // Album Title
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -223,12 +235,18 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
 
 
   // --- SLIDES SEGUINTES: GALERIA DE FOTOS (2 fotos lado a lado por página, sem esticar) ---
-  if (album.photos && album.photos.length > 0) {
+  // Filtra a foto de capa para não se repetir na galeria do PDF
+  const coverUrl = album.cover_photo_url;
+  const remainingPhotos = coverUrl
+    ? album.photos.filter(p => p.photo_url !== coverUrl && p.thumbnail_url !== coverUrl)
+    : album.photos;
+
+  if (remainingPhotos && remainingPhotos.length > 0) {
     const itemsPerPage = 2;
     const photoWidth = 125;
     const photoHeight = 110;
 
-    for (let i = 0; i < album.photos.length; i += itemsPerPage) {
+    for (let i = 0; i < remainingPhotos.length; i += itemsPerPage) {
       doc.addPage();
 
       // Header Banner
@@ -237,14 +255,20 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text(`GALERIA DE IMAGENS - FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, album.photos.length)} DE ${album.photos.length}`, 18, 14);
+      doc.text(`GALERIA DE IMAGENS - FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, remainingPhotos.length)} DE ${remainingPhotos.length}`, 18, 14);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(album.title.toUpperCase(), 282, 14, { align: "right" });
+      if (logoBase64) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(245, 4, 34, 14, "F");
+        await addFittedImage(doc, logoBase64, 247, 5, 30, 12);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text(album.title.toUpperCase(), 282, 14, { align: "right" });
+      }
 
       // Column 1 (Left Photo)
-      const p1 = album.photos[i];
+      const p1 = remainingPhotos[i];
       if (p1) {
         // Moldura sutil cinza ao redor da área de encaixe
         doc.setDrawColor(225, 228, 232);
@@ -252,7 +276,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
         doc.rect(18, 35, photoWidth, photoHeight, "FD");
 
         try {
-          const base64 = await imageToBase64(p1.photo_url);
+          const base64 = await imageToBase64(p1.thumbnail_url || p1.photo_url);
           // Adiciona imagem preservando proporções e centralizando dentro de (18, 35, 125, 110)
           await addFittedImage(doc, base64, 18, 35, photoWidth, photoHeight);
         } catch (err) {
@@ -279,7 +303,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
       }
 
       // Column 2 (Right Photo)
-      const p2 = album.photos[i + 1];
+      const p2 = remainingPhotos[i + 1];
       if (p2) {
         // Moldura sutil cinza ao redor da área de encaixe
         doc.setDrawColor(225, 228, 232);
@@ -287,7 +311,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
         doc.rect(154, 35, photoWidth, photoHeight, "FD");
 
         try {
-          const base64 = await imageToBase64(p2.photo_url);
+          const base64 = await imageToBase64(p2.thumbnail_url || p2.photo_url);
           // Adiciona imagem preservando proporções e centralizando dentro de (154, 35, 125, 110)
           await addFittedImage(doc, base64, 154, 35, photoWidth, photoHeight);
         } catch (err) {
@@ -617,6 +641,13 @@ export const generatePresentationPDF = async (
     format: "a4",
   });
 
+  let logoBase64: string | null = null;
+  try {
+    logoBase64 = await imageToBase64("/uninassau-logo.png");
+  } catch (err) {
+    console.error("Erro ao carregar logo no relatório de apresentação:", err);
+  }
+
   const primaryColor: [number, number, number] = [26, 54, 93];
   const secondaryColor: [number, number, number] = [74, 85, 104];
   const accentColor: [number, number, number] = [66, 153, 225];
@@ -628,11 +659,16 @@ export const generatePresentationPDF = async (
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, 8, 210, "F");
 
+  // Logo do sistema
+  if (logoBase64) {
+    await addFittedImage(doc, logoBase64, 18, 12, 38, 10);
+  }
+
   // Título principal (coluna esquerda)
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text("RELATÓRIO DE EVIDÊNCIAS FOTOGRÁFICAS", 18, 25);
+  doc.text("RELATÓRIO DE EVIDÊNCIAS FOTOGRÁFICAS", 18, 28);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
@@ -717,9 +753,16 @@ export const generatePresentationPDF = async (
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text("SUMÁRIO — ORDEM DA APRESENTAÇÃO", 18, 14);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(`${albums.length} álbun(s) selecionado(s)`, 282, 14, { align: "right" });
+
+  if (logoBase64) {
+    doc.setFillColor(255, 255, 255);
+    doc.rect(245, 4, 34, 14, "F");
+    await addFittedImage(doc, logoBase64, 247, 5, 30, 12);
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`${albums.length} álbun(s) selecionado(s)`, 282, 14, { align: "right" });
+  }
 
   const tableBody = albums.map((album, idx) => [
     `${idx + 1}º`,
@@ -768,9 +811,16 @@ export const generatePresentationPDF = async (
     doc.setFontSize(12);
     const albumTitleHeader = doc.splitTextToSize(albumTitle.toUpperCase(), 200);
     doc.text(albumTitleHeader[0], 18, 14);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+
+    if (logoBase64) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(245, 4, 34, 14, "F");
+      await addFittedImage(doc, logoBase64, 247, 5, 30, 12);
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+    }
 
     // --- Coluna Esquerda: Foto de Capa Grande ---
     const coverX = 18;
@@ -866,12 +916,18 @@ export const generatePresentationPDF = async (
     // ----------------------------------------------------------
     // SLIDES DE FOTOS DO ÁLBUM (2 por página)
     // ----------------------------------------------------------
-    if (album.photos && album.photos.length > 0) {
+    // Filtra a foto de capa para não se repetir na galeria do PDF
+    const coverUrl = album.cover_photo_url;
+    const remainingPhotos = coverUrl
+      ? album.photos.filter(p => p.photo_url !== coverUrl && p.thumbnail_url !== coverUrl)
+      : album.photos;
+
+    if (remainingPhotos && remainingPhotos.length > 0) {
       const itemsPerPage = 2;
       const photoWidth = 125;
       const photoHeight = 110;
 
-      for (let i = 0; i < album.photos.length; i += itemsPerPage) {
+      for (let i = 0; i < remainingPhotos.length; i += itemsPerPage) {
         doc.addPage();
 
         // Header
@@ -881,16 +937,23 @@ export const generatePresentationPDF = async (
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(
-          `${albumTitle.toUpperCase()} — FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, album.photos.length)} DE ${album.photos.length}`,
+          `${albumTitle.toUpperCase()} — FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, remainingPhotos.length)} DE ${remainingPhotos.length}`,
           18,
           14
         );
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+
+        if (logoBase64) {
+          doc.setFillColor(255, 255, 255);
+          doc.rect(245, 4, 34, 14, "F");
+          await addFittedImage(doc, logoBase64, 247, 5, 30, 12);
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+        }
 
         // Foto 1 (esquerda)
-        const p1 = album.photos[i];
+        const p1 = remainingPhotos[i];
         if (p1) {
           doc.setDrawColor(225, 228, 232);
           doc.setFillColor(250, 251, 252);
@@ -920,7 +983,7 @@ export const generatePresentationPDF = async (
         }
 
         // Foto 2 (direita)
-        const p2 = album.photos[i + 1];
+        const p2 = remainingPhotos[i + 1];
         if (p2) {
           doc.setDrawColor(225, 228, 232);
           doc.setFillColor(250, 251, 252);
