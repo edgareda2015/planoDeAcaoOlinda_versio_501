@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 // Helper to fetch and convert image URL to base64 data URL
 export const imageToBase64 = async (url: string): Promise<string> => {
@@ -458,7 +458,7 @@ export const generateConsolidatedPDF = async (
     album.photos?.length || 0,
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: 32,
     head: [["#", "Título do Álbum", "Data da Ação", "Responsável", "Unidade", "Qtd. Fotos"]],
     body: tableBody,
@@ -739,7 +739,7 @@ export const generatePresentationPDF = async (
     album.photos?.length || 0,
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: 30,
     head: [["Ordem", "Título do Álbum", "Data", "Responsável", "Unidade", "Fotos"]],
     body: tableBody,
