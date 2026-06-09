@@ -668,47 +668,38 @@ export const generatePresentationPDF = async (
     filterY += 8;
   });
 
-  // Coluna direita: métricas consolidadas
+  // Coluna direita: Foto de capa do primeiro álbum marcado
+  const frameX = 150;
+  const frameY = 22;
+  const frameW = 132;
+  const frameH = 155;
+
   doc.setFillColor(245, 247, 250);
-  doc.rect(150, 22, 132, 155, "F");
+  doc.rect(frameX, frameY, frameW, frameH, "F");
   doc.setDrawColor(220, 225, 230);
-  doc.rect(150, 22, 132, 155);
+  doc.rect(frameX, frameY, frameW, frameH);
 
-  const totalPhotos = albums.reduce((acc, a) => acc + (a.photos?.length || 0), 0);
-
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("RESUMO DA APRESENTAÇÃO", 160, 38);
-  doc.setLineWidth(0.3);
-  doc.setDrawColor(210, 215, 220);
-  doc.line(160, 42, 272, 42);
-
-  // Álbuns
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(30);
-  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.text(String(albums.length), 160, 72);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text("ÁLBUNS NA APRESENTAÇÃO", 160, 79);
-
-  // Fotos
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(30);
-  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.text(String(totalPhotos), 160, 115);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text("FOTOS REGISTRADAS", 160, 122);
-
-  // Data de emissão
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text(`Emitido em: ${new Date().toLocaleString("pt-BR")}`, 160, 155);
+  const firstAlbum = albums[0];
+  if (firstAlbum && firstAlbum.cover_photo_url) {
+    try {
+      const base64 = await imageToBase64(firstAlbum.cover_photo_url);
+      await addFittedImage(doc, base64, frameX + 2, frameY + 2, frameW - 4, frameH - 4);
+    } catch (err) {
+      console.error("Erro ao carregar capa do primeiro álbum na capa geral:", err);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Foto de capa do primeiro álbum", frameX + 16, frameY + frameH / 2 - 5);
+      doc.text("não disponível", frameX + 43, frameY + frameH / 2 + 2);
+    }
+  } else {
+    // Sem foto de capa
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Primeiro álbum sem", frameX + 32, frameY + frameH / 2 - 5);
+    doc.text("foto de capa cadastrada", frameX + 28, frameY + frameH / 2 + 2);
+  }
 
   // Footer capa
   doc.setFontSize(8);
