@@ -284,7 +284,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
       doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 18, 200);
-      doc.text(`Página ${Math.floor(i / itemsPerPage) + 3}`, 282, 200, { align: "right" });
+      doc.text(`Página ${Math.floor(i / itemsPerPage) + 2}`, 282, 200, { align: "right" });
     }
   }
 
