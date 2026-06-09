@@ -198,17 +198,16 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("DETALHAMENTO E INDICADORES", 18, 14);
+  doc.text("DETALHAMENTO DO ÁLBUM", 18, 14);
   
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(album.title.toUpperCase(), 282, 14, { align: "right" });
 
-  // Columns Layout: Left = Texts, Right = KPIs
+  // Layout: Full Width Texts (width = 260)
   let textY = 38;
   doc.setTextColor(50, 50, 50);
 
-  // Left Column (x = 18, width = 125)
   if (album.description) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -216,7 +215,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     textY += 6;
-    const splitDesc = doc.splitTextToSize(album.description, 125);
+    const splitDesc = doc.splitTextToSize(album.description, 260);
     doc.text(splitDesc, 18, textY);
     textY += (splitDesc.length * 5) + 8;
   }
@@ -228,7 +227,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     textY += 6;
-    const splitResult = doc.splitTextToSize(album.action_result, 125);
+    const splitResult = doc.splitTextToSize(album.action_result, 260);
     doc.text(splitResult, 18, textY);
     textY += (splitResult.length * 5) + 8;
   }
@@ -240,43 +239,9 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     textY += 6;
-    const splitObs = doc.splitTextToSize(album.observations, 125);
+    const splitObs = doc.splitTextToSize(album.observations, 260);
     doc.text(splitObs, 18, textY);
   }
-
-  // Right Column (x = 155, width = 127) - Indicators
-  // Card 1: Leads
-  doc.setFillColor(245, 247, 250);
-  doc.rect(155, 35, 127, 45, "F");
-  doc.setDrawColor(235, 237, 240);
-  doc.rect(155, 35, 127, 45);
-
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  doc.text(String(album.leads_captured || 0), 165, 62);
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text("LEADS CAPTADOS", 165, 71);
-
-  // Card 2: Participants
-  doc.setFillColor(245, 247, 250);
-  doc.rect(155, 90, 127, 45, "F");
-  doc.setDrawColor(235, 237, 240);
-  doc.rect(155, 90, 127, 45);
-
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  const partText = doc.splitTextToSize(album.participants || "N/A", 110);
-  doc.text(partText, 165, 110);
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text("PARTICIPANTES", 165, 126);
 
   // Slide 2 Footer
   doc.setFontSize(8);
