@@ -9,11 +9,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, MapPin } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 export const UnitSelector = () => {
   const { data: units, isLoading } = useUnits();
   const { activeUnitId, setActiveUnitId } = useVersion();
   const { profile } = useAuth();
+  const location = useLocation();
 
   // Só mostra o seletor para administradores e diretores regionais
   if (profile?.role !== 'admin' && profile?.role !== 'diretor_regional') {
@@ -22,6 +25,14 @@ export const UnitSelector = () => {
 
   const isAdmin = profile?.role === 'admin';
   const filteredUnits = units?.filter(u => isAdmin || u.regional_id === profile?.regional_id);
+
+  const isDashboardDeAcoes = location.pathname === '/outros-setores';
+
+  useEffect(() => {
+    if (!isDashboardDeAcoes && activeUnitId === 'all' && filteredUnits && filteredUnits.length > 0) {
+      setActiveUnitId(filteredUnits[0].id);
+    }
+  }, [isDashboardDeAcoes, activeUnitId, filteredUnits, setActiveUnitId]);
 
   if (isLoading) {
     return (
@@ -46,7 +57,7 @@ export const UnitSelector = () => {
           <SelectValue placeholder={isAdmin ? "Todas as Unidades" : "Selecione a Unidade"} />
         </SelectTrigger>
         <SelectContent>
-          {isAdmin && <SelectItem value="all">Visão Global (Todas)</SelectItem>}
+          {isAdmin && isDashboardDeAcoes && <SelectItem value="all">Visão Global (Todas)</SelectItem>}
           {filteredUnits?.map((unit) => (
             <SelectItem key={unit.id} value={unit.id}>
               {unit.name}
@@ -57,3 +68,4 @@ export const UnitSelector = () => {
     </div>
   );
 };
+

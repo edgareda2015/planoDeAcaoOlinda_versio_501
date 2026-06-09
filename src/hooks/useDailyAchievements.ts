@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useVersion } from "@/contexts/VersionContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 // --- Types ---
 export interface DailyAchievement {
@@ -86,6 +87,52 @@ export const useUpsertDailyAchievement = () => {
     },
     onError: (error) => {
       toast.error(`Erro ao salvar lançamento: ${error.message}`);
+    },
+  });
+};
+
+export const useClearDailyAchievements = () => {
+  const queryClient = useQueryClient();
+  const { activeVersion, activeUnitId } = useVersion();
+  const { profile } = useAuth();
+  
+  return useMutation<any, Error, { sectorId: string | 'all'; date: Date }>({
+    mutationFn: async ({ sectorId, date }) => {
+      const effectiveUnitId = (profile?.role === 'diretor_unidade' && profile?.unit_id)
+        ? profile.unit_id
+        : activeUnitId;
+        
+      const startDateStr = format(startOfMonth(date), "yyyy-MM-dd");
+      const endDateStr = format(endOfMonth(date), "yyyy-MM-dd");
+      
+      let query = supabase
+        .from("daily_achievements")
+        .delete()
+        .eq("period_version", activeVersion)
+        .gte("date", startDateStr)
+        .lte("date", endDateStr);
+        
+      if (effectiveUnitId === 'all') {
+        query = query.is("unit_id", null);
+      } else {
+        query = query.eq("unit_id", effectiveUnitId);
+      }
+      
+      if (sectorId !== 'all') {
+        query = query.eq("sector_id", sectorId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily_achievements"] });
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+      toast.success("Lançamentos apagados com sucesso!");
+    },
+    onError: (error) => {
+      toast.error(`Erro ao apagar lançamentos: ${error.message}`);
     },
   });
 };

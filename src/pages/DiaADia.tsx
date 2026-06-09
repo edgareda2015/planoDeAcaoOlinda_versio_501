@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSectors } from "@/hooks/useGoals";
-import { useDailyAchievements, useUpsertDailyAchievement } from "@/hooks/useDailyAchievements";
+import { useDailyAchievements, useUpsertDailyAchievement, useClearDailyAchievements } from "@/hooks/useDailyAchievements";
 import { getSectorColors } from "@/lib/sector-config";
 import { format, startOfMonth, eachDayOfInterval, endOfMonth, isSunday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,10 +19,27 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CalendarIcon, Save, Expand, Minimize, FileDown } from "lucide-react";
+import { Loader2, XCircle, CalendarIcon, Save, Expand, Minimize, FileDown, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const DailyLaunchSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
@@ -41,6 +58,28 @@ const DiaADia = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [editingCell, setEditingCell] = useState<{ day: string; sectorId: string } | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  const { mutate: clearAchievements } = useClearDailyAchievements();
+  const [clearTarget, setClearTarget] = useState<{ sectorId: string | 'all'; sectorName: string } | null>(null);
+
+  const handleOpenClearDialog = (sectorId: string | 'all') => {
+    const sectorName = sectorId === 'all'
+      ? "Todos os Setores"
+      : displayedSectors.find(s => s.id === sectorId)?.name || "Setor Selecionado";
+    setClearTarget({ sectorId, sectorName });
+  };
+
+  const handleConfirmClear = () => {
+    if (!clearTarget) return;
+    clearAchievements(
+      { sectorId: clearTarget.sectorId, date: selectedDate },
+      {
+        onSuccess: () => {
+          setClearTarget(null);
+        }
+      }
+    );
+  };
 
   const form = useForm<DailyLaunchFormValues>({
     resolver: zodResolver(DailyLaunchSchema),
@@ -314,7 +353,34 @@ const DiaADia = () => {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end border-t pt-4">
+            <div className="flex justify-between items-center border-t pt-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" disabled={monthlyData.length === 0} className="border-destructive text-destructive hover:bg-destructive/10">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Zerar Lançamentos
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    onClick={() => handleOpenClearDialog('all')}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                  >
+                    Zerar Todos os Setores (Mês Inteiro)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {displayedSectors.map(sector => (
+                    <DropdownMenuItem
+                      key={sector.id}
+                      onClick={() => handleOpenClearDialog(sector.id)}
+                      className="cursor-pointer"
+                    >
+                      Zerar Coluna: {sector.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button onClick={handleExport} disabled={monthlyData.length === 0}>
                 <FileDown className="mr-2 h-4 w-4" />
                 Exportar Tabela para PDF
@@ -412,10 +478,21 @@ const DiaADia = () => {
                             {displayedSectors.map((sector) => (
                               <TableHead 
                                 key={sector.id} 
-                                className="text-center text-primary-foreground p-2 border border-slate-500 dark:border-slate-400"
+                                className="text-center text-primary-foreground p-2 border border-slate-500 dark:border-slate-400 relative group"
                                 style={{ backgroundColor: getSectorColors(sector.name).chart }}
                               >
-                                {sector.name}
+                                <div className="flex items-center justify-center gap-1 min-h-[1.5rem]">
+                                  <span>{sector.name}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenClearDialog(sector.id)}
+                                    className="opacity-0 group-hover:opacity-100 hover:bg-black/20 hover:text-white text-white/80 transition-opacity h-6 w-6 p-0 rounded-full ml-1"
+                                    title={`Zerar coluna ${sector.name}`}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </TableHead>
                             ))}
                           </TableRow>
@@ -483,6 +560,30 @@ const DiaADia = () => {
           </Card>
         )}
       </div>
+
+      {/* Modal de Confirmação de Limpeza */}
+      <AlertDialog open={clearTarget !== null} onOpenChange={(open) => !open && setClearTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Tem certeza de que deseja zerar os lançamentos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação apagará permanentemente todos os lançamentos diários de{" "}
+              <strong className="text-foreground">{clearTarget?.sectorName}</strong> para a unidade selecionada no período de{" "}
+              <strong className="text-foreground capitalize">{format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}</strong>.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmClear}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              Zerar Lançamentos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
