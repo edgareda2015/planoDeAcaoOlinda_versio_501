@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAlbums, useEvidenceStats } from "@/hooks/useEvidence";
 import { useUnits, useRegionals } from "@/hooks/useOrganization";
 import { CreateAlbumModal } from "@/components/CreateAlbumModal";
-import { generateConsolidatedPDF } from "@/lib/pdfGenerator";
-import { downloadConsolidatedZIP } from "@/lib/zipExporter";
+import { generatePresentationPDF } from "@/lib/pdfGenerator";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVersion } from "@/contexts/VersionContext";
 import {
@@ -14,13 +14,9 @@ import {
   Calendar,
   User,
   Building,
-  TrendingUp,
-  Users,
   Award,
-  Download,
-  CheckSquare,
   Square,
-  FileDown,
+  Film,
   Loader2,
   FolderOpen,
   ChevronLeft,
@@ -99,24 +95,26 @@ export default function GaleriaEvidencias() {
     }
   };
 
-  // Exportação consolidada dos selecionados
-  const handleExportSelected = async () => {
+  // Gera a Apresentação PDF na ORDEM de seleção
+  const handleGerarApresentacao = async () => {
     if (selectedAlbumIds.length === 0) return;
     setIsExporting(true);
 
     try {
-      // 1. Filtra os álbuns selecionados
-      const albumsToExport = albums?.filter((a) => selectedAlbumIds.includes(a.id)) || [];
-      
-      // 2. Busca os detalhes completos (com fotos) para cada álbum
+      // 1. Mantém a ORDEM de seleção (selectedAlbumIds já é ordered by insertion)
+      const albumsEmOrdem = selectedAlbumIds
+        .map(id => albums?.find(a => a.id === id))
+        .filter(Boolean) as typeof albums extends (infer T)[] | undefined ? NonNullable<T>[] : never[];
+
+      // 2. Busca fotos completas de cada álbum (na ordem)
       const fullAlbumsData = await Promise.all(
-        albumsToExport.map(async (album) => {
-          // Busca fotos deste álbum
+        albumsEmOrdem.map(async (album) => {
           const { data: photos } = await supabase
             .from("evidence_photos")
-            .select("photo_url, thumbnail_url")
-            .eq("album_id", album.id);
-          
+            .select("photo_url, thumbnail_url, description, posted_by_name")
+            .eq("album_id", album.id)
+            .order("created_at", { ascending: true });
+
           return {
             ...album,
             photos: photos || [],
@@ -126,7 +124,7 @@ export default function GaleriaEvidencias() {
         })
       );
 
-      // 3. Filtros formatados para o cabeçalho do PDF (calculados a partir do contexto da versão ativa/perfil)
+      // 3. Determina filtros para o cabeçalho
       const effectiveUnitId = (profile?.role === "diretor_unidade" && profile?.unit_id)
         ? profile.unit_id
         : (activeUnitId !== "all" ? activeUnitId : null);
@@ -145,40 +143,26 @@ export default function GaleriaEvidencias() {
           ? regionals?.find((r) => r.id === units?.find((u) => u.id === effectiveUnitId)?.regional_id)?.name || "Todas"
           : "Todas");
 
-      // 4. Gera PDF Consolidado
-      const pdfBlob = await generateConsolidatedPDF(fullAlbumsData as any[], {
+      // 4. Gera a Apresentação PDF
+      const pdfBlob = await generatePresentationPDF(fullAlbumsData as any[], {
         period: activeVersion === "all" ? "Todos" : activeVersion,
         unit: currentUnitName,
         regional: currentRegionalName
       });
 
-      // 5. Prepara dados para o ZIP
-      const zipAlbums = await Promise.all(
-        fullAlbumsData.map(async (album) => {
-          // Precisamos gerar o PDF individual de cada álbum
-          const { jsPDF } = await import("jspdf");
-          // Para otimização de tempo, passamos o pdf individual como blob
-          const { generateIndividualPDF } = await import("@/lib/pdfGenerator");
-          const indPdfBlob = await generateIndividualPDF(album as any);
+      // 5. Download automático
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `apresentacao_evidencias_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
 
-          return {
-            title: album.title,
-            pdfBlob: indPdfBlob,
-            photos: album.photos.map((p, pIdx) => ({
-              photo_url: p.photo_url,
-              name: `foto_${pIdx + 1}`
-            }))
-          };
-        })
-      );
-
-      // 6. Faz o download do ZIP consolidado contendo relatório e pastas organizadas
-      await downloadConsolidatedZIP("consolidado_evidencias", pdfBlob, zipAlbums);
-      toast.success("Exportação concluída!");
+      toast.success(`Apresentação gerada com ${selectedAlbumIds.length} álbum(s)!`);
       setSelectedAlbumIds([]);
     } catch (error) {
       console.error(error);
-      toast.error("Erro ao gerar a exportação consolidada.");
+      toast.error("Erro ao gerar a apresentação PDF.");
     } finally {
       setIsExporting(false);
     }
@@ -260,40 +244,61 @@ export default function GaleriaEvidencias() {
 
       {/* Ações de Seleção em lote */}
       {filteredAlbums.length > 0 && (
-        <div className="flex justify-between items-center bg-secondary/30 px-4 py-3 rounded-lg border">
-          <Button variant="ghost" onClick={toggleSelectAll} className="gap-2 text-xs font-bold uppercase">
-            {selectedAlbumIds.length === filteredAlbums.length ? (
-              <>
-                <CheckSquare className="h-4 w-4 text-primary" /> Desmarcar Todos
-              </>
-            ) : (
-              <>
-                <Square className="h-4 w-4" /> Selecionar Todos
-              </>
-            )}
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center bg-secondary/30 px-4 py-3 rounded-lg border">
+            <Button variant="ghost" onClick={toggleSelectAll} className="gap-2 text-xs font-bold uppercase">
+              {selectedAlbumIds.length === filteredAlbums.length ? (
+                <>
+                  <Square className="h-4 w-4 text-primary" /> Desmarcar Todos
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4" /> Selecionar Todos
+                </>
+              )}
+            </Button>
 
+            {selectedAlbumIds.length > 0 && (
+              <div className="flex items-center gap-3 animate-fade-in">
+                <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
+                  {selectedAlbumIds.length} selecionado(s)
+                </span>
+                <Button
+                  onClick={handleGerarApresentacao}
+                  disabled={isExporting}
+                  size="sm"
+                  className="gap-2 text-xs uppercase shadow-sm bg-primary hover:bg-primary/90"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando Apresentação...
+                    </>
+                  ) : (
+                    <>
+                      <Film className="h-4 w-4" /> Gerar Apresentação PDF
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Preview da ordem de seleção */}
           {selectedAlbumIds.length > 0 && (
-            <div className="flex items-center gap-2 animate-fade-in">
-              <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
-                {selectedAlbumIds.length} selecionado(s)
-              </span>
-              <Button
-                onClick={handleExportSelected}
-                disabled={isExporting}
-                size="sm"
-                className="gap-2 text-xs uppercase shadow-sm"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando Exportação...
-                  </>
-                ) : (
-                  <>
-                    <FileDown className="h-4 w-4" /> Exportar ZIP Consolidado
-                  </>
-                )}
-              </Button>
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/20 rounded-lg animate-fade-in">
+              <span className="text-[10px] font-black uppercase tracking-wider text-primary">Ordem:</span>
+              {selectedAlbumIds.slice(0, 5).map((id, idx) => {
+                const album = albums?.find(a => a.id === id);
+                return (
+                  <span key={id} className="flex items-center gap-1 bg-primary/10 border border-primary/30 rounded px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black">{idx + 1}</span>
+                    {album?.title?.slice(0, 25)}{(album?.title?.length || 0) > 25 ? "..." : ""}
+                  </span>
+                );
+              })}
+              {selectedAlbumIds.length > 5 && (
+                <span className="text-[10px] text-muted-foreground font-semibold">+{selectedAlbumIds.length - 5} mais...</span>
+              )}
             </div>
           )}
         </div>
@@ -329,13 +334,18 @@ export default function GaleriaEvidencias() {
                     isSelected && "ring-2 ring-primary border-primary bg-primary/5"
                   )}
                 >
-                  {/* Checkbox de Seleção */}
+                  {/* Checkbox de Seleção com Número de Ordem */}
                   <button
                     onClick={(e) => toggleSelectAlbum(album.id, e)}
-                    className="absolute top-3 left-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded p-1.5 transition border border-white/20"
+                    className={cn(
+                      "absolute top-3 left-3 z-10 rounded transition border font-black text-sm w-8 h-8 flex items-center justify-center",
+                      isSelected
+                        ? "bg-primary text-white border-primary shadow-lg scale-110"
+                        : "bg-black/60 hover:bg-black/80 text-white border-white/20"
+                    )}
                   >
                     {isSelected ? (
-                      <CheckSquare className="h-4 w-4 text-warning" />
+                      <span className="text-xs font-black">{selectedAlbumIds.indexOf(album.id) + 1}</span>
                     ) : (
                       <Square className="h-4 w-4 text-white/80" />
                     )}

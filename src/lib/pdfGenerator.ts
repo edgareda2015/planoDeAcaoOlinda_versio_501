@@ -568,3 +568,370 @@ export const generateConsolidatedPDF = async (
 
   return doc.output("blob");
 };
+
+/**
+ * Gera PDF de Apresentação com múltiplos álbuns na ORDEM de seleção
+ * Estrutura: Capa Geral → Sumário → Para cada álbum: Sub-capa + Fotos (2/página)
+ */
+export const generatePresentationPDF = async (
+  albums: AlbumData[],
+  filters: { period?: string; regional?: string; unit?: string }
+): Promise<Blob> => {
+  const doc = new jsPDF({
+    orientation: "l",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const primaryColor: [number, number, number] = [26, 54, 93];
+  const secondaryColor: [number, number, number] = [74, 85, 104];
+  const accentColor: [number, number, number] = [66, 153, 225];
+
+  // ============================================================
+  // SLIDE 1: CAPA GERAL DA APRESENTAÇÃO
+  // ============================================================
+  // Stripe lateral esquerda
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, 8, 210, "F");
+
+  // Título principal (coluna esquerda)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("RELATÓRIO DE EVIDÊNCIAS FOTOGRÁFICAS", 18, 25);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  const mainTitle = doc.splitTextToSize("APRESENTAÇÃO\nDOS ÁLBUNS DE EVIDÊNCIAS", 125);
+  doc.text(mainTitle, 18, 40);
+
+  const lineY = 75;
+  doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setLineWidth(0.8);
+  doc.line(18, lineY, 135, lineY);
+
+  // Filtros aplicados
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text("Filtros Aplicados:", 18, lineY + 12);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  let filterY = lineY + 22;
+  const filterList: [string, string][] = [
+    ["Semestre / Período:", filters.period || "Todos"],
+    ["Regional:", filters.regional || "Todas"],
+    ["Unidade:", filters.unit || "Todas"],
+  ];
+  filterList.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.text(label, 18, filterY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text(value, 65, filterY);
+    filterY += 8;
+  });
+
+  // Coluna direita: métricas consolidadas
+  doc.setFillColor(245, 247, 250);
+  doc.rect(150, 22, 132, 155, "F");
+  doc.setDrawColor(220, 225, 230);
+  doc.rect(150, 22, 132, 155);
+
+  const totalPhotos = albums.reduce((acc, a) => acc + (a.photos?.length || 0), 0);
+
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("RESUMO DA APRESENTAÇÃO", 160, 38);
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(210, 215, 220);
+  doc.line(160, 42, 272, 42);
+
+  // Álbuns
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.text(String(albums.length), 160, 72);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.text("ÁLBUNS NA APRESENTAÇÃO", 160, 79);
+
+  // Fotos
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.text(String(totalPhotos), 160, 115);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.text("FOTOS REGISTRADAS", 160, 122);
+
+  // Data de emissão
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text(`Emitido em: ${new Date().toLocaleString("pt-BR")}`, 160, 155);
+
+  // Footer capa
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 18, 200);
+  doc.text("Página 1", 282, 200, { align: "right" });
+
+  // ============================================================
+  // SLIDE 2: SUMÁRIO NA ORDEM DE SELEÇÃO
+  // ============================================================
+  doc.addPage();
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, 297, 22, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("SUMÁRIO — ORDEM DA APRESENTAÇÃO", 18, 14);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`${albums.length} álbun(s) selecionado(s)`, 282, 14, { align: "right" });
+
+  const tableBody = albums.map((album, idx) => [
+    `${idx + 1}º`,
+    album.title,
+    album.date ? new Date(album.date).toLocaleDateString("pt-BR") : "N/A",
+    album.responsible_name || "N/A",
+    album.unit_name || "N/A",
+    album.photos?.length || 0,
+  ]);
+
+  (doc as any).autoTable({
+    startY: 30,
+    head: [["Ordem", "Título do Álbum", "Data", "Responsável", "Unidade", "Fotos"]],
+    body: tableBody,
+    theme: "striped",
+    headStyles: { fillColor: primaryColor, fontSize: 9, fontStyle: "bold" },
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    columnStyles: { 0: { halign: "center", fontStyle: "bold", cellWidth: 14 }, 5: { halign: "center", cellWidth: 14 } },
+    margin: { left: 18, right: 18 },
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 18, 200);
+  doc.text("Página 2", 282, 200, { align: "right" });
+
+  // ============================================================
+  // SLIDES SEGUINTES: PARA CADA ÁLBUM (na ordem selecionada)
+  //   → Sub-capa do álbum + Slides de fotos (2/página)
+  // ============================================================
+  let pageIdx = 3;
+
+  for (const album of albums) {
+    // ----------------------------------------------------------
+    // SUB-CAPA DO ÁLBUM
+    // ----------------------------------------------------------
+    doc.addPage();
+
+    // Banner superior com nome do álbum
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 297, 22, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    const albumTitleHeader = doc.splitTextToSize(album.title.toUpperCase(), 200);
+    doc.text(albumTitleHeader[0], 18, 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+
+    // --- Coluna Esquerda: Foto de Capa Grande ---
+    const coverX = 18;
+    const coverY = 28;
+    const coverW = 155;
+    const coverH = 155;
+
+    doc.setDrawColor(220, 225, 230);
+    doc.setFillColor(242, 245, 248);
+    doc.rect(coverX, coverY, coverW, coverH, "FD");
+
+    if (album.cover_photo_url) {
+      try {
+        const base64Cover = await imageToBase64(album.cover_photo_url);
+        await addFittedImage(doc, base64Cover, coverX, coverY, coverW, coverH);
+      } catch (err) {
+        console.error("Erro ao carregar capa do álbum:", err);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Foto de capa não disponível", coverX + 30, coverY + coverH / 2);
+      }
+    } else {
+      // Sem foto de capa: ícone/placeholder
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Sem foto de capa", coverX + 45, coverY + coverH / 2);
+    }
+
+    // --- Coluna Direita: Título + Metadados ---
+    const metaX = 182;
+    let metaY = 32;
+
+    // Título do álbum em destaque
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    const titleLines = doc.splitTextToSize(album.title, 105);
+    doc.text(titleLines, metaX, metaY);
+    metaY += (titleLines.length * 6) + 4;
+
+    // Linha separadora
+    doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+    doc.setLineWidth(1);
+    doc.line(metaX, metaY, 282, metaY);
+    metaY += 8;
+
+    // Metadados
+    doc.setLineWidth(0.3);
+    const metaItems: [string, string][] = [
+      ["Responsável:", album.responsible_name || "N/A"],
+      ["Data da Ação:", album.date ? new Date(album.date).toLocaleDateString("pt-BR") : "N/A"],
+      ["Unidade:", album.unit_name || "N/A"],
+      ["Regional:", album.regional_name || "N/A"],
+      ["Total de Fotos:", String(album.photos?.length || 0)],
+    ];
+
+    metaItems.forEach(([label, value]) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text(label, metaX, metaY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(40, 40, 40);
+      doc.text(value, metaX + 32, metaY);
+      metaY += 8;
+    });
+
+    // Descrição (se houver)
+    if (album.description) {
+      metaY += 4;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text("Descrição:", metaX, metaY);
+      metaY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      const splitDesc = doc.splitTextToSize(album.description, 105);
+      const maxDescLines = 6;
+      doc.text(splitDesc.slice(0, maxDescLines), metaX, metaY);
+    }
+
+    // Footer sub-capa
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 18, 200);
+    doc.text(`Página ${pageIdx}`, 282, 200, { align: "right" });
+    pageIdx++;
+
+    // ----------------------------------------------------------
+    // SLIDES DE FOTOS DO ÁLBUM (2 por página)
+    // ----------------------------------------------------------
+    if (album.photos && album.photos.length > 0) {
+      const itemsPerPage = 2;
+      const photoWidth = 125;
+      const photoHeight = 110;
+
+      for (let i = 0; i < album.photos.length; i += itemsPerPage) {
+        doc.addPage();
+
+        // Header
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, 297, 22, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(
+          `${album.title.toUpperCase()} — FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, album.photos.length)} DE ${album.photos.length}`,
+          18,
+          14
+        );
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("GALERIA DE EVIDÊNCIAS", 282, 14, { align: "right" });
+
+        // Foto 1 (esquerda)
+        const p1 = album.photos[i];
+        if (p1) {
+          doc.setDrawColor(225, 228, 232);
+          doc.setFillColor(250, 251, 252);
+          doc.rect(18, 30, photoWidth, photoHeight, "FD");
+          try {
+            const base64 = await imageToBase64(p1.photo_url);
+            await addFittedImage(doc, base64, 18, 30, photoWidth, photoHeight);
+          } catch (err) {
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(8);
+            doc.text("Erro ao carregar imagem", 55, 85);
+          }
+          if (p1.description) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8.5);
+            doc.setTextColor(60, 60, 60);
+            const splitD1 = doc.splitTextToSize(`"${p1.description}"`, photoWidth);
+            doc.text(splitD1, 18, 148);
+            if (p1.posted_by_name) {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(7.5);
+              doc.setTextColor(130, 130, 130);
+              doc.text(`— ${p1.posted_by_name}`, 18, 148 + (splitD1.length * 4) + 1);
+            }
+          }
+        }
+
+        // Foto 2 (direita)
+        const p2 = album.photos[i + 1];
+        if (p2) {
+          doc.setDrawColor(225, 228, 232);
+          doc.setFillColor(250, 251, 252);
+          doc.rect(154, 30, photoWidth, photoHeight, "FD");
+          try {
+            const base64 = await imageToBase64(p2.photo_url);
+            await addFittedImage(doc, base64, 154, 30, photoWidth, photoHeight);
+          } catch (err) {
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(8);
+            doc.text("Erro ao carregar imagem", 192, 85);
+          }
+          if (p2.description) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8.5);
+            doc.setTextColor(60, 60, 60);
+            const splitD2 = doc.splitTextToSize(`"${p2.description}"`, photoWidth);
+            doc.text(splitD2, 154, 148);
+            if (p2.posted_by_name) {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(7.5);
+              doc.setTextColor(130, 130, 130);
+              doc.text(`— ${p2.posted_by_name}`, 154, 148 + (splitD2.length * 4) + 1);
+            }
+          }
+        }
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 18, 200);
+        doc.text(`Página ${pageIdx}`, 282, 200, { align: "right" });
+        pageIdx++;
+      }
+    }
+  }
+
+  return doc.output("blob");
+};
+
