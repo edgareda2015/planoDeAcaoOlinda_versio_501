@@ -3,8 +3,14 @@ import "jspdf-autotable";
 
 // Helper to fetch and convert image URL to base64 data URL
 export const imageToBase64 = async (url: string): Promise<string> => {
+  if (!url || typeof url !== "string" || url.trim() === "") {
+    throw new Error("URL de imagem inválida ou vazia");
+  }
   try {
     const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Erro HTTP ao buscar imagem: ${res.status}`);
+    }
     const blob = await res.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -13,8 +19,27 @@ export const imageToBase64 = async (url: string): Promise<string> => {
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.error("Falha ao converter imagem para PDF:", err);
+    console.error("Falha ao converter imagem para PDF:", err, url);
     throw err;
+  }
+};
+
+// Helper to safely format action dates for the PDF reports without throwing RangeError
+export const formatPdfDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr || typeof dateStr !== "string" || dateStr.trim() === "") return "N/A";
+  try {
+    let cleanDateStr = dateStr.trim();
+    // Support DD/MM/YYYY formatting commonly used in BR
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleanDateStr)) {
+      const [day, month, year] = cleanDateStr.split("/");
+      cleanDateStr = `${year}-${month}-${day}`;
+    }
+    const d = new Date(cleanDateStr);
+    if (isNaN(d.getTime())) return "N/A";
+    return d.toLocaleDateString("pt-BR");
+  } catch (err) {
+    console.error("Erro ao formatar data no PDF:", err);
+    return "N/A";
   }
 };
 
@@ -45,7 +70,11 @@ export const addFittedImage = async (
     const { width: origWidth, height: origHeight } = await getImageDimensions(base64);
     if (origWidth === 0 || origHeight === 0) {
       // Fallback if dimensions couldn't be loaded
-      doc.addImage(base64, "WEBP", x, y, maxWidth, maxHeight, undefined, "FAST");
+      try {
+        doc.addImage(base64, "WEBP", x, y, maxWidth, maxHeight, undefined, "FAST");
+      } catch (fallbackErr) {
+        console.error("Erro crítico no addImage sem dimensões:", fallbackErr);
+      }
       return;
     }
     
@@ -70,8 +99,12 @@ export const addFittedImage = async (
     doc.addImage(base64, "WEBP", x + xOffset, y + yOffset, width, height, undefined, "FAST");
   } catch (err) {
     console.error("Erro ao adicionar imagem com proporção ajustada:", err);
-    // Safe fallback
-    doc.addImage(base64, "WEBP", x, y, maxWidth, maxHeight, undefined, "FAST");
+    try {
+      // Safe fallback
+      doc.addImage(base64, "WEBP", x, y, maxWidth, maxHeight, undefined, "FAST");
+    } catch (fallbackErr) {
+      console.error("Erro crítico no fallback do addImage:", fallbackErr);
+    }
   }
 };
 
@@ -139,7 +172,7 @@ export const generateIndividualPDF = async (album: AlbumData): Promise<Blob> => 
 
   const metaData = [
     ["Responsável:", album.responsible_name || "N/A"],
-    ["Data da Ação:", album.date ? new Date(album.date).toLocaleDateString('pt-BR') : "N/A"],
+    ["Data da Ação:", formatPdfDate(album.date)],
     ["Unidade / Regional:", `${album.unit_name || "N/A"} / ${album.regional_name || "N/A"}`],
     ["Ação Vinculada:", album.action_name || "Álbum Livre (Sem vínculo)"],
   ];
@@ -418,9 +451,9 @@ export const generateConsolidatedPDF = async (
 
   const tableBody = albums.map((album, idx) => [
     idx + 1,
-    album.title,
-    album.date ? new Date(album.date).toLocaleDateString('pt-BR') : "N/A",
-    album.responsible_name,
+    album.title || "Sem Título",
+    formatPdfDate(album.date),
+    album.responsible_name || "N/A",
     album.unit_name || "N/A",
     album.photos?.length || 0,
   ]);
@@ -448,12 +481,13 @@ export const generateConsolidatedPDF = async (
     doc.addPage();
 
     // Banner Superior
+    const albumTitle = album.title || "Sem Título";
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 297, 22, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text(`ÁLBUM: ${album.title.toUpperCase()}`, 18, 14);
+    doc.text(`ÁLBUM: ${albumTitle.toUpperCase()}`, 18, 14);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -471,7 +505,7 @@ export const generateConsolidatedPDF = async (
     doc.setFont("helvetica", "bold");
     doc.text("Data da Ação:", 18, 38);
     doc.setFont("helvetica", "normal");
-    doc.text(album.date ? new Date(album.date).toLocaleDateString('pt-BR') : "N/A", 50, 38);
+    doc.text(formatPdfDate(album.date), 50, 38);
 
     doc.setFont("helvetica", "bold");
     doc.text("Unidade / Regional:", 18, 44);
@@ -698,8 +732,8 @@ export const generatePresentationPDF = async (
 
   const tableBody = albums.map((album, idx) => [
     `${idx + 1}º`,
-    album.title,
-    album.date ? new Date(album.date).toLocaleDateString("pt-BR") : "N/A",
+    album.title || "Sem Título",
+    formatPdfDate(album.date),
     album.responsible_name || "N/A",
     album.unit_name || "N/A",
     album.photos?.length || 0,
@@ -728,6 +762,8 @@ export const generatePresentationPDF = async (
   let pageIdx = 3;
 
   for (const album of albums) {
+    const albumTitle = album.title || "Sem Título";
+
     // ----------------------------------------------------------
     // SUB-CAPA DO ÁLBUM
     // ----------------------------------------------------------
@@ -739,7 +775,7 @@ export const generatePresentationPDF = async (
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    const albumTitleHeader = doc.splitTextToSize(album.title.toUpperCase(), 200);
+    const albumTitleHeader = doc.splitTextToSize(albumTitle.toUpperCase(), 200);
     doc.text(albumTitleHeader[0], 18, 14);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -782,7 +818,7 @@ export const generatePresentationPDF = async (
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    const titleLines = doc.splitTextToSize(album.title, 105);
+    const titleLines = doc.splitTextToSize(albumTitle, 105);
     doc.text(titleLines, metaX, metaY);
     metaY += (titleLines.length * 6) + 4;
 
@@ -796,7 +832,7 @@ export const generatePresentationPDF = async (
     doc.setLineWidth(0.3);
     const metaItems: [string, string][] = [
       ["Responsável:", album.responsible_name || "N/A"],
-      ["Data da Ação:", album.date ? new Date(album.date).toLocaleDateString("pt-BR") : "N/A"],
+      ["Data da Ação:", formatPdfDate(album.date)],
       ["Unidade:", album.unit_name || "N/A"],
       ["Regional:", album.regional_name || "N/A"],
       ["Total de Fotos:", String(album.photos?.length || 0)],
@@ -854,7 +890,7 @@ export const generatePresentationPDF = async (
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(
-          `${album.title.toUpperCase()} — FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, album.photos.length)} DE ${album.photos.length}`,
+          `${albumTitle.toUpperCase()} — FOTOS ${i + 1} A ${Math.min(i + itemsPerPage, album.photos.length)} DE ${album.photos.length}`,
           18,
           14
         );
@@ -869,7 +905,7 @@ export const generatePresentationPDF = async (
           doc.setFillColor(250, 251, 252);
           doc.rect(18, 30, photoWidth, photoHeight, "FD");
           try {
-            const base64 = await imageToBase64(p1.photo_url);
+            const base64 = await imageToBase64(p1.thumbnail_url || p1.photo_url);
             await addFittedImage(doc, base64, 18, 30, photoWidth, photoHeight);
           } catch (err) {
             doc.setFont("helvetica", "normal");
@@ -899,7 +935,7 @@ export const generatePresentationPDF = async (
           doc.setFillColor(250, 251, 252);
           doc.rect(154, 30, photoWidth, photoHeight, "FD");
           try {
-            const base64 = await imageToBase64(p2.photo_url);
+            const base64 = await imageToBase64(p2.thumbnail_url || p2.photo_url);
             await addFittedImage(doc, base64, 154, 30, photoWidth, photoHeight);
           } catch (err) {
             doc.setFont("helvetica", "normal");
