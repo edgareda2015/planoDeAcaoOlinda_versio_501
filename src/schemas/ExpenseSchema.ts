@@ -3,6 +3,26 @@ import { z } from "zod";
 export const ExpenseSectorSchema = z.object({
   name: z.string().min(2, { message: "O nome do setor deve ter pelo menos 2 caracteres." }),
   active: z.boolean().default(true),
+  accumulates_balance: z.boolean().default(true),
+});
+
+// Schema unificado para o modal de criação/edição de setor + verba
+export const ExpenseSectorModalSchema = z.object({
+  name: z.string().min(2, { message: "O nome do setor deve ter pelo menos 2 caracteres." }),
+  active: z.boolean().default(true),
+  accumulates_balance: z.boolean().default(true),
+  budget_value: z.preprocess(
+    (val) => (val === "" || val === undefined || val === null ? 0 : Number(val)),
+    z.number().min(0, { message: "O valor da verba deve ser maior ou igual a zero." })
+  ),
+  start_date: z.date({
+    required_error: "A data inicial é obrigatória.",
+    invalid_type_error: "Data inicial inválida.",
+  }),
+  end_date: z.date({
+    required_error: "A data final é obrigatória.",
+    invalid_type_error: "Data final inválida.",
+  }),
 });
 
 export const ExpenseBudgetSchema = z.object({
@@ -12,6 +32,14 @@ export const ExpenseBudgetSchema = z.object({
     z.number().min(0, { message: "O valor da verba deve ser maior ou igual a zero." })
   ),
   description: z.string().optional().nullable().or(z.literal("")),
+  start_date: z.date({
+    required_error: "A data inicial é obrigatória.",
+    invalid_type_error: "Data inicial inválida.",
+  }),
+  end_date: z.date({
+    required_error: "A data final é obrigatória.",
+    invalid_type_error: "Data final inválida.",
+  }),
 });
 
 export const ExpenseSchema = z.object({
@@ -32,5 +60,6 @@ export const ExpenseSchema = z.object({
 });
 
 export type ExpenseSectorFormValues = z.infer<typeof ExpenseSectorSchema>;
+export type ExpenseSectorModalFormValues = z.infer<typeof ExpenseSectorModalSchema>;
 export type ExpenseBudgetFormValues = z.infer<typeof ExpenseBudgetSchema>;
 export type ExpenseFormValues = z.infer<typeof ExpenseSchema>;

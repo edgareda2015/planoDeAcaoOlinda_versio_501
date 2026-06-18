@@ -12,9 +12,13 @@ export interface ExpenseSector {
   active: boolean;
   unit_id: string | null;
   created_at: string;
+  accumulates_balance: boolean;
   budget_received: number; // calculated
   spent_amount: number;    // calculated
   remaining_budget: number; // calculated
+  period_budget_received: number; // strictly current period
+  period_spent_amount: number;    // strictly current period
+  period_remaining_budget: number; // strictly current period
 }
 
 export interface ExpenseAttachment {
@@ -69,14 +73,14 @@ export const useExpenseStatuses = () => {
 };
 
 // --- Sectors Fetcher ---
-const fetchExpenseSectors = async (unitId: string): Promise<ExpenseSector[]> => {
+const fetchExpenseSectors = async (unitId: string, version: string): Promise<ExpenseSector[]> => {
   // Se for "all" (Visão Global), buscamos todos os setores
   let query = supabase
     .from("expense_sectors")
     .select(`
       *,
-      expense_budgets(budget_received),
-      expenses(value, status, deleted_at)
+      expense_budgets(budget_received, period_version),
+      expenses(value, status, deleted_at, period_version)
     `);
 
   if (unitId !== 'all') {
@@ -86,28 +90,61 @@ const fetchExpenseSectors = async (unitId: string): Promise<ExpenseSector[]> => 
   const { data, error } = await query.order("name");
   if (error) throw new Error(error.message);
 
+  const isAll = version === 'all' || version === 'todos';
+
   return (data as any[]).map(sector => {
-    const budget_received = sector.expense_budgets?.reduce((sum: number, b: any) => sum + Number(b.budget_received), 0) || 0;
-    // Gasto atual desconsidera despesas soft-deleted e canceladas
-    const spent_amount = sector.expenses
-      ?.filter((e: any) => e.deleted_at === null && e.status !== 'Cancelado')
+    // 1. Lógica do período atual (independente de acumular ou não)
+    const period_budget_received = sector.expense_budgets
+      ?.filter((b: any) => isAll || b.period_version === version)
+      ?.reduce((sum: number, b: any) => sum + Number(b.budget_received), 0) || 0;
+
+    const period_spent_amount = sector.expenses
+      ?.filter((e: any) => e.deleted_at === null && e.status !== 'Cancelado' && (isAll || e.period_version === version))
       ?.reduce((sum: number, e: any) => sum + Number(e.value), 0) || 0;
+
+    const period_remaining_budget = period_budget_received - period_spent_amount;
+
+    // 2. Lógica acumulada (depende de sector.accumulates_balance)
+    let budget_received = 0;
+    let spent_amount = 0;
+
+    if (isAll) {
+      budget_received = period_budget_received;
+      spent_amount = period_spent_amount;
+    } else if (sector.accumulates_balance) {
+      // Acumula: soma todos os períodos menores ou iguais ao selecionado
+      budget_received = sector.expense_budgets
+        ?.filter((b: any) => b.period_version && b.period_version <= version)
+        ?.reduce((sum: number, b: any) => sum + Number(b.budget_received), 0) || 0;
+
+      spent_amount = sector.expenses
+        ?.filter((e: any) => e.deleted_at === null && e.status !== 'Cancelado' && e.period_version && e.period_version <= version)
+        ?.reduce((sum: number, e: any) => sum + Number(e.value), 0) || 0;
+    } else {
+      // Não acumula: igual ao período atual
+      budget_received = period_budget_received;
+      spent_amount = period_spent_amount;
+    }
+
     const remaining_budget = budget_received - spent_amount;
 
     return {
       ...sector,
       budget_received,
       spent_amount,
-      remaining_budget
+      remaining_budget,
+      period_budget_received,
+      period_spent_amount,
+      period_remaining_budget
     };
   });
 };
 
 export const useExpenseSectors = () => {
-  const { activeUnitId } = useVersion();
+  const { activeUnitId, activeVersion } = useVersion();
   return useQuery<ExpenseSector[], Error>({
-    queryKey: ["expense_sectors", activeUnitId],
-    queryFn: () => fetchExpenseSectors(activeUnitId),
+    queryKey: ["expense_sectors", activeUnitId, activeVersion],
+    queryFn: () => fetchExpenseSectors(activeUnitId, activeVersion),
   });
 };
 
@@ -128,6 +165,7 @@ export const useAddExpenseSector = () => {
         .insert({
           name: values.name,
           active: values.active,
+          accumulates_balance: values.accumulates_balance,
           unit_id: effectiveUnitId
         })
         .select()
@@ -170,14 +208,28 @@ export const useUpdateExpenseSector = () => {
 // --- Aporte de Verba ---
 export const useAddExpenseBudget = () => {
   const queryClient = useQueryClient();
+  const { activeVersion } = useVersion();
   return useMutation({
     mutationFn: async (values: ExpenseBudgetFormValues) => {
+      let versionToUse = activeVersion;
+      if (versionToUse === 'all' || versionToUse === 'todos') {
+        const { data: setting } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'default_semester')
+          .maybeSingle();
+        versionToUse = setting?.value || `${new Date().getFullYear()}.${new Date().getMonth() < 6 ? 1 : 2}`;
+      }
+
       const { data, error } = await supabase
         .from("expense_budgets")
         .insert({
           sector_id: values.sector_id,
           budget_received: values.budget_received,
-          description: values.description || null
+          description: values.description || null,
+          period_version: versionToUse,
+          start_date: values.start_date.toISOString().split("T")[0],
+          end_date: values.end_date.toISOString().split("T")[0]
         })
         .select()
         .single();
@@ -197,13 +249,15 @@ export const useAddExpenseBudget = () => {
 export const useUpdateExpenseBudget = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { id: string; sector_id: string; budget_received: number; description?: string | null }) => {
+    mutationFn: async (payload: { id: string; sector_id: string; budget_received: number; description?: string | null; start_date: Date; end_date: Date }) => {
       const { data, error } = await supabase
         .from("expense_budgets")
         .update({
           sector_id: payload.sector_id,
           budget_received: payload.budget_received,
-          description: payload.description || null
+          description: payload.description || null,
+          start_date: payload.start_date.toISOString().split("T")[0],
+          end_date: payload.end_date.toISOString().split("T")[0]
         })
         .eq("id", payload.id)
         .select()
@@ -288,6 +342,16 @@ export const useAddExpense = () => {
         ? profile.unit_id 
         : (activeUnitId === 'all' ? null : activeUnitId);
 
+      let versionToUse = activeVersion;
+      if (versionToUse === 'all' || versionToUse === 'todos') {
+        const { data: setting } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'default_semester')
+          .maybeSingle();
+        versionToUse = setting?.value || `${new Date().getFullYear()}.${new Date().getMonth() < 6 ? 1 : 2}`;
+      }
+
       // 1. Cadastra a despesa
       const { data: expense, error: expenseError } = await supabase
         .from("expenses")
@@ -302,7 +366,7 @@ export const useAddExpense = () => {
           observation: payload.formValues.observation || null,
           created_by: profile.id,
           unit_id: effectiveUnitId,
-          period_version: activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion
+          period_version: versionToUse
         })
         .select()
         .single();
@@ -468,5 +532,26 @@ export const useDeleteAttachment = () => {
       toast.success("Anexo excluído com sucesso!");
     },
     onError: (error: any) => toast.error(`Erro ao excluir anexo: ${error.message}`),
+  });
+};
+
+export const useDeleteExpenseSector = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sectorId: string) => {
+      const { error } = await supabase
+        .from("expense_sectors")
+        .delete()
+        .eq("id", sectorId);
+
+      if (error) throw new Error(error.message);
+      return sectorId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense_sectors"] });
+      queryClient.invalidateQueries({ queryKey: ["budget_history"] });
+      toast.success("Setor excluído com sucesso!");
+    },
+    onError: (error: any) => toast.error(`Erro ao excluir setor: ${error.message}`),
   });
 };

@@ -168,6 +168,11 @@ const ExpenseDashboard = ({
   const uniqueTickets  = new Set(expenses.map(e => e.ticket_number).filter(Boolean)).size;
   const totalAttachments = expenses.reduce((s, e) => s + (e.expense_attachments?.length ?? 0), 0);
 
+  // KPIs do Período Atual (independente de acúmulo)
+  const periodBudget   = sectors.reduce((s, sec) => s + sec.period_budget_received, 0);
+  const periodSpent    = sectors.reduce((s, sec) => s + sec.period_spent_amount, 0);
+  const periodBalance  = periodBudget - periodSpent;
+
   // Chart: Gastos por Setor (Bar)
   const spentBySector = sectors.map((sec, i) => ({
     name: sec.name.length > 12 ? sec.name.slice(0, 12) + "…" : sec.name,
@@ -249,10 +254,34 @@ const ExpenseDashboard = ({
     <div className="space-y-6">
       {/* KPI Cards — 4 cards principais */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Verba Recebida" value={formatCurrency(totalBudget)}    icon={Wallet}       colorClass="bg-blue-500"    />
-        <KpiCard title="Total Gasto"    value={formatCurrency(totalSpent)}     icon={TrendingDown} colorClass="bg-red-500"     />
-        <KpiCard title="Saldo Atual"    value={formatCurrency(currentBalance)} icon={CreditCard}   colorClass="bg-emerald-500" />
-        <KpiCard title="Lançamentos"    value={String(totalExpenses)}          icon={Receipt}      colorClass="bg-violet-500"  />
+        <KpiCard 
+          title="Verba Recebida" 
+          value={formatCurrency(totalBudget)} 
+          icon={Wallet} 
+          colorClass="bg-blue-500" 
+          sub={`Período: ${formatCurrency(periodBudget)}`}
+        />
+        <KpiCard 
+          title="Total Gasto" 
+          value={formatCurrency(totalSpent)} 
+          icon={TrendingDown} 
+          colorClass="bg-red-500" 
+          sub={`Período: ${formatCurrency(periodSpent)}`}
+        />
+        <KpiCard 
+          title="Saldo Atual" 
+          value={formatCurrency(currentBalance)} 
+          icon={CreditCard} 
+          colorClass="bg-emerald-500" 
+          sub={`Período: ${formatCurrency(periodBalance)}`}
+        />
+        <KpiCard 
+          title="Lançamentos" 
+          value={String(totalExpenses)} 
+          icon={Receipt} 
+          colorClass="bg-violet-500" 
+          sub="No período ativo"
+        />
       </div>
 
       {/* Charts Row 1 */}
@@ -299,20 +328,34 @@ const ExpenseDashboard = ({
                       
                       return (
                         <TableRow key={sec.id || i} className="hover:bg-slate-50 dark:hover:bg-slate-900/60 border-b border-border/50 transition-colors">
-                          <TableCell className="py-3 font-extrabold text-slate-950 dark:text-slate-50 text-sm sm:text-base tracking-tight">
-                            {sec.name}
+                          <TableCell className="py-3 font-extrabold text-slate-950 dark:text-slate-50 text-sm tracking-tight">
+                            <div>{sec.name}</div>
+                            <div className="mt-1">
+                              <Badge variant="secondary" className="text-[10px] font-normal px-1 py-0 bg-secondary/50">
+                                {sec.accumulates_balance ? "Acumula Saldo" : "Não Acumula"}
+                              </Badge>
+                            </div>
                           </TableCell>
                           <TableCell className="py-3 text-right font-semibold text-slate-700 dark:text-slate-300 text-sm whitespace-nowrap">
-                            {formatCurrency(sec.budget_received)}
+                            <div>{formatCurrency(sec.budget_received)}</div>
+                            <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                              Período: {formatCurrency(sec.period_budget_received)}
+                            </div>
                           </TableCell>
                           <TableCell className="py-3 text-right font-bold text-red-600 dark:text-red-400 text-sm whitespace-nowrap">
-                            {formatCurrency(sec.spent_amount)}
+                            <div>{formatCurrency(sec.spent_amount)}</div>
+                            <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                              Período: {formatCurrency(sec.period_spent_amount)}
+                            </div>
                           </TableCell>
                           <TableCell className={cn(
                             "py-3 text-right font-black text-sm whitespace-nowrap",
                             isNegative ? "text-red-600 dark:text-red-500" : "text-emerald-600 dark:text-emerald-400"
                           )}>
-                            {formatCurrency(sec.remaining_budget)}
+                            <div>{formatCurrency(sec.remaining_budget)}</div>
+                            <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                              Período: {formatCurrency(sec.period_remaining_budget)}
+                            </div>
                           </TableCell>
                           <TableCell className="py-3">
                             <div className="space-y-1">
