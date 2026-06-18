@@ -325,3 +325,39 @@ export const exportKeyActionsToPdf = (actions: KeyAction[], fileName: string = "
 
   doc.save(fileName);
 };
+
+// Exportar Despesas para Excel
+export const exportExpensesToExcel = (expenses: any[], fileName: string = "cartao-de-despesas.xlsx") => {
+  const sortedExpenses = [...expenses].sort((a, b) => 
+    new Date(a.purchase_date).getTime() - new Date(b.purchase_date).getTime()
+  );
+
+  const worksheetData = sortedExpenses.map(expense => ({
+    'Setor': expense.expense_sectors?.name || 'N/A',
+    'Data da Compra': format(new Date(expense.purchase_date.replace(/-/g, '/')), 'dd/MM/yyyy'),
+    'Valor': expense.value,
+    'Descrição': expense.description,
+    'Nº Chamado': expense.ticket_number,
+    'Data do Chamado': format(new Date(expense.ticket_date.replace(/-/g, '/')), 'dd/MM/yyyy'),
+    'Status': expense.status,
+    'Observação': expense.observation || '',
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Despesas");
+
+  const cols = [
+    { wch: 20 }, // Setor
+    { wch: 15 }, // Data da Compra
+    { wch: 15 }, // Valor
+    { wch: 40 }, // Descrição
+    { wch: 15 }, // Nº Chamado
+    { wch: 18 }, // Data do Chamado
+    { wch: 15 }, // Status
+    { wch: 40 }, // Observação
+  ];
+  worksheet['!cols'] = cols;
+
+  XLSX.writeFile(workbook, fileName);
+};

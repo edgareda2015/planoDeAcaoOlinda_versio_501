@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Imports para a nova aba "Principais Ações"
+// Imports para abas existentes
 import { useKeyActions, KeyAction, useDeleteKeyAction } from "@/hooks/useKeyActions";
 import { KeyActionModal } from "@/components/KeyActionModal";
 import { XCircle, Loader2, Coins, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { useVersion } from "@/contexts/VersionContext";
 import { useUnits } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
+// Módulo Cartão de Despesa
+import { ExpenseCardModule } from "@/components/ExpenseCardModule";
 
 // Componente auxiliar para renderizar o conteúdo da aba de Ações
 const ActionTabContent = ({
@@ -248,13 +250,13 @@ const Acoes = () => {
           <TabsTrigger 
             value="principais" 
             className={cn(
-              "data-[state=active]:bg-warning data-[state=active]:text-warning-foreground data-[state=active]:shadow-md data-[state=active]:border-warning",
+              "data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-emerald-600",
               "data-[state=active]:border-b-2 data-[state=active]:rounded-t-lg data-[state=active]:rounded-b-none",
               "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-secondary/50",
               "transition-all duration-200 py-3"
             )}
           >
-            Principais Ações
+            Cartão de Despesa
           </TabsTrigger>
         </TabsList>
         
@@ -294,113 +296,18 @@ const Acoes = () => {
           type="administrativo"
         />
 
-        {/* Aba Principais Ações */}
-        <TabsContent value="principais" className="mt-4 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start flex-wrap gap-4">
-                <div>
-                  <CardTitle>Principais Ações Comerciais</CardTitle>
-                  <CardDescription>Alinhamento de Cursos vs. Prospecção Empresarial.</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleOpenCreateKeyActionModal} className="bg-warning hover:bg-warning/90 text-warning-foreground">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Criar Ação Principal
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" disabled={isLoadingKeyActions || !keyActions?.length} className="border-warning text-warning hover:bg-warning/5">
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Exportar
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleExportKeyActions('excel')}>Exportar para Excel (.xlsx)</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExportKeyActions('pdf')}>Exportar para PDF (.pdf)</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {keyActions && (
-                <div className="mb-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Verba Total Distribuída</CardTitle>
-                      <Coins className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      {(() => {
-                        const totalBudgetUsed = keyActions.reduce((sum, action) => sum + action.budget_percentage, 0);
-                        const remainingBudget = 100 - totalBudgetUsed;
-                        return (
-                          <>
-                            <div className="text-2xl font-bold">{totalBudgetUsed}%</div>
-                            <p className="text-xs text-muted-foreground">
-                              {remainingBudget}% restante para alocar
-                            </p>
-                            <Progress value={totalBudgetUsed} className="mt-2" />
-                          </>
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-              {isLoadingKeyActions && <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}
-              {isErrorKeyActions && <div className="p-6 text-destructive flex items-center"><XCircle className="h-5 w-5 mr-2" />Erro ao carregar ações.</div>}
-              
-              {keyActions && (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-primary [&_th]:text-primary-foreground hover:bg-primary/90">
-                        <TableHead className="w-[15%]">Curso / Setor</TableHead>
-                        <TableHead className="w-[30%]">Target (Setor / Tipo de Empresa)</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead className="text-center">Leads Esperados</TableHead>
-                        <TableHead className="text-center">Matrículas Esperadas</TableHead>
-                        <TableHead className="w-[15%] text-center">% Verba</TableHead>
-                        <TableHead className="w-[64px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {keyActions.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Nenhuma ação encontrada.</TableCell></TableRow>
-                      ) : (
-                        keyActions.map((action) => (
-                          <TableRow key={action.id}>
-                            <TableCell className="font-medium">{action.course}</TableCell>
-                            <TableCell className="whitespace-normal break-words">{action.target}</TableCell>
-                            <TableCell>{format(new Date(action.action_date.replace(/-/g, '/')), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                            <TableCell className="text-center">{action.expected_leads}</TableCell>
-                            <TableCell className="text-center">{action.expected_enrollments}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Progress value={action.budget_percentage} className="h-2" />
-                                <span className="text-sm font-medium">{action.budget_percentage}%</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleOpenEditKeyActionModal(action)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setActionToDelete(action)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Aba Cartão de Despesa */}
+        <TabsContent value="principais" className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white text-sm font-bold shadow">R$</span>
+              Cartão de Despesa
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Controle e rastreamento completo de despesas por setor, com verba alocada e notas fiscais.
+            </p>
+          </div>
+          <ExpenseCardModule />
         </TabsContent>
       </Tabs>
 

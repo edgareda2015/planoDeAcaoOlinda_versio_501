@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { ExpenseSectorManager } from "@/components/ExpenseSectorManager";
+
 
 // Gera semestres dinamicamente de 2026 até 2035
 const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
@@ -82,7 +84,18 @@ const Admin = () => {
         
         {canSeeSectors && (
           <TabsContent value="sectors">
-            <SectorManager />
+            <Tabs defaultValue="metas_sectors" className="space-y-6">
+              <TabsList className="grid w-full md:w-[450px] grid-cols-2 bg-muted/60">
+                <TabsTrigger value="metas_sectors">Setores (Metas & Ações)</TabsTrigger>
+                <TabsTrigger value="expense_sectors">Setores (Despesas)</TabsTrigger>
+              </TabsList>
+              <TabsContent value="metas_sectors">
+                <SectorManager />
+              </TabsContent>
+              <TabsContent value="expense_sectors">
+                <ExpenseSectorManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
         
