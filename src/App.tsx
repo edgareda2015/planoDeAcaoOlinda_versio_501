@@ -23,6 +23,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { RoleGuard } from "./components/auth/RoleGuard";
 import GaleriaEvidencias from "./pages/GaleriaEvidencias";
 import DetalhesAlbum from "./pages/DetalhesAlbum";
+import Despesas from "./pages/Despesas";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/outros-setores" element={<OutrosSetores />} />
                   <Route path="/metas" element={<Metas />} />
                   <Route path="/acoes" element={<Acoes />} />
+                  <Route path="/despesas" element={<Despesas />} />
                   <Route path="/galeria" element={<GaleriaEvidencias />} />
                   <Route path="/galeria/:id" element={<DetalhesAlbum />} />
                   <Route 

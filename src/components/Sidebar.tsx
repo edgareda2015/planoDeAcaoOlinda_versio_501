@@ -16,6 +16,7 @@ import {
   Building,
   Star,
   Image,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils";
@@ -34,6 +35,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const staticTopItems = [
   { icon: FileText, label: "Ações", id: "actions", href: "/" },
+  { icon: CreditCard, label: "Cartão de Despesa", id: "expenses", href: "/despesas" },
   { icon: Target, label: "Metas", id: "goals", href: "/metas" },
   { icon: CalendarDays, label: "Dia a Dia", id: "daily", href: "/dia-a-dia" },
   { icon: CalendarRange, label: "Mês a Mês", id: "monthly", href: "/mes-a-mes" },

@@ -21,7 +21,7 @@ import {
   PlusCircle, FileDown, Search, Filter, X, Loader2, Trash2, Pencil,
   Eye, Download, MoreHorizontal, CreditCard, TrendingDown, Wallet,
   Receipt, Building2, Phone, Paperclip, AlertTriangle, ChevronLeft, ChevronRight,
-  BarChart3, List,
+  BarChart3, List, Coins,
 } from "lucide-react";
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -41,6 +41,7 @@ import {
   Expense,
 } from "@/hooks/useExpenses";
 import { ExpenseModal } from "@/components/ExpenseModal";
+import { ExpenseSectorManager } from "@/components/ExpenseSectorManager";
 import { exportExpensesToExcel } from "@/lib/exportUtils";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -928,7 +929,7 @@ export const ExpenseCardModule = () => {
     <div className="space-y-4">
       <Tabs defaultValue="dashboard">
         <div className="flex items-center gap-4 border-b border-border pb-0">
-          <TabsList className="grid grid-cols-2 w-[340px] h-auto p-0 bg-transparent rounded-none">
+          <TabsList className="grid grid-cols-3 w-[510px] h-auto p-0 bg-transparent rounded-none">
             <TabsTrigger
               value="dashboard"
               className={cn(
@@ -950,6 +951,17 @@ export const ExpenseCardModule = () => {
             >
               <List className="h-4 w-4" />
               Lançamentos
+            </TabsTrigger>
+            <TabsTrigger
+              value="management"
+              className={cn(
+                "flex items-center gap-2 py-2.5 rounded-none border-b-2 border-transparent transition-all",
+                "data-[state=active]:border-emerald-500 data-[state=active]:text-emerald-700 data-[state=active]:font-semibold",
+                "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-secondary/40"
+              )}
+            >
+              <Coins className="h-4 w-4" />
+              Gestão de Verbas
             </TabsTrigger>
           </TabsList>
         </div>
@@ -976,6 +988,11 @@ export const ExpenseCardModule = () => {
                 onDelete={(e) => setDeleteTarget(e)}
                 onViewAttachment={(att) => setPreviewAtt(att)}
               />
+            </TabsContent>
+
+            {/* Gestão de Verbas */}
+            <TabsContent value="management" className="mt-6">
+              <ExpenseSectorManager />
             </TabsContent>
           </>
         )}

@@ -27,8 +27,7 @@ import { cn } from "@/lib/utils";
 import { useVersion } from "@/contexts/VersionContext";
 import { useUnits } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
-// Módulo Cartão de Despesa
-import { ExpenseCardModule } from "@/components/ExpenseCardModule";
+
 
 // Componente auxiliar para renderizar o conteúdo da aba de Ações
 const ActionTabContent = ({
@@ -213,7 +212,7 @@ const Acoes = () => {
       </div>
 
       <Tabs defaultValue="matricula">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-0 bg-transparent border-b border-border rounded-none">
+        <TabsList className="grid w-full grid-cols-3 h-auto p-0 bg-transparent border-b border-border rounded-none">
           <TabsTrigger 
             value="matricula" 
             className={cn(
@@ -246,17 +245,6 @@ const Acoes = () => {
             )}
           >
             Ritual de Gestão
-          </TabsTrigger>
-          <TabsTrigger 
-            value="principais" 
-            className={cn(
-              "data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-emerald-600",
-              "data-[state=active]:border-b-2 data-[state=active]:rounded-t-lg data-[state=active]:rounded-b-none",
-              "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-secondary/50",
-              "transition-all duration-200 py-3"
-            )}
-          >
-            Cartão de Despesa
           </TabsTrigger>
         </TabsList>
         
@@ -296,19 +284,7 @@ const Acoes = () => {
           type="administrativo"
         />
 
-        {/* Aba Cartão de Despesa */}
-        <TabsContent value="principais" className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white text-sm font-bold shadow">R$</span>
-              Cartão de Despesa
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Controle e rastreamento completo de despesas por setor, com verba alocada e notas fiscais.
-            </p>
-          </div>
-          <ExpenseCardModule />
-        </TabsContent>
+
       </Tabs>
 
       {/* Modais */}
