@@ -53,6 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Comprado": "#06b6d4",
   "Pago": "#22c55e",
   "Cancelado": "#ef4444",
+  "Finalizado": "#0f172a",
 };
 
 const getStatusBadgeClass = (status: string) => {
@@ -63,6 +64,7 @@ const getStatusBadgeClass = (status: string) => {
     "Comprado":    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
     "Pago":        "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
     "Cancelado":   "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+    "Finalizado":  "bg-slate-800 text-white dark:bg-slate-900 dark:text-slate-100",
   };
   return map[status] ?? "bg-gray-100 text-gray-800";
 };
