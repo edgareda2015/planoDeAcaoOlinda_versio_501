@@ -79,8 +79,8 @@ const fetchExpenseSectors = async (unitId: string, version: string): Promise<Exp
     .from("expense_sectors")
     .select(`
       *,
-      expense_budgets(budget_received, period_version),
-      expenses(value, status, deleted_at, period_version)
+      expense_budgets(budget_received, period_version, start_date, end_date),
+      expenses(value, status, deleted_at, period_version, purchase_date)
     `);
 
   if (unitId !== 'all') {
@@ -93,13 +93,49 @@ const fetchExpenseSectors = async (unitId: string, version: string): Promise<Exp
   const isAll = version === 'all' || version === 'todos';
 
   return (data as any[]).map(sector => {
-    // 1. Lógica do período atual (independente de acumular ou não)
+    // Buscar as datas do período do orçamento atual (para setores "Não Acumula")
+    const currentPeriodBudgets = sector.expense_budgets
+      ?.filter((b: any) => b.period_version === version) || [];
+
+    // Determinar intervalo de datas do período atual a partir dos budgets
+    let periodStartDate: string | null = null;
+    let periodEndDate: string | null = null;
+    for (const b of currentPeriodBudgets) {
+      if (b.start_date && (!periodStartDate || b.start_date < periodStartDate)) {
+        periodStartDate = b.start_date;
+      }
+      if (b.end_date && (!periodEndDate || b.end_date > periodEndDate)) {
+        periodEndDate = b.end_date;
+      }
+    }
+
+    // Helper: verifica se a purchase_date da despesa cai dentro do período do budget
+    const isExpenseInPeriodDates = (e: any): boolean => {
+      if (!e.purchase_date || !periodStartDate || !periodEndDate) return false;
+      return e.purchase_date >= periodStartDate && e.purchase_date <= periodEndDate;
+    };
+
+    // Para "Não Acumula": filtra por datas do período (start_date/end_date do budget).
+    // Se não tiver datas no budget, faz fallback para period_version.
+    const hasPeriodDates = !!periodStartDate && !!periodEndDate;
+
+    // 1. Lógica do período atual
     const period_budget_received = sector.expense_budgets
       ?.filter((b: any) => isAll || b.period_version === version)
       ?.reduce((sum: number, b: any) => sum + Number(b.budget_received), 0) || 0;
 
+    // Para setores "Não Acumula" com datas definidas, filtramos por purchase_date
+    const periodExpenseFilter = (e: any): boolean => {
+      if (e.deleted_at !== null || e.status === 'Cancelado') return false;
+      if (isAll) return true;
+      if (!sector.accumulates_balance && hasPeriodDates) {
+        return isExpenseInPeriodDates(e);
+      }
+      return e.period_version === version;
+    };
+
     const period_spent_amount = sector.expenses
-      ?.filter((e: any) => e.deleted_at === null && e.status !== 'Cancelado' && (isAll || e.period_version === version))
+      ?.filter(periodExpenseFilter)
       ?.reduce((sum: number, e: any) => sum + Number(e.value), 0) || 0;
 
     const period_remaining_budget = period_budget_received - period_spent_amount;
@@ -121,7 +157,7 @@ const fetchExpenseSectors = async (unitId: string, version: string): Promise<Exp
         ?.filter((e: any) => e.deleted_at === null && e.status !== 'Cancelado' && e.period_version && e.period_version <= version)
         ?.reduce((sum: number, e: any) => sum + Number(e.value), 0) || 0;
     } else {
-      // Não acumula: igual ao período atual
+      // Não acumula: usa filtro por datas do período (se disponíveis)
       budget_received = period_budget_received;
       spent_amount = period_spent_amount;
     }
