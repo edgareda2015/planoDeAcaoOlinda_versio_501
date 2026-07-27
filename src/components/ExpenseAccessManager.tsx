@@ -21,7 +21,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-const EXPENSE_ADMIN_EMAIL = "edgar.tavares@mauriciodenassau.edu.br";
+const EXPENSE_ADMIN_EMAILS = [
+  "edgar.tavares@mauriciodenassau.edu.br",
+  "edgareda2015@gmail.com",
+];
 
 export const ExpenseAccessManager = () => {
   const isExpenseAdmin = useIsExpenseAdmin();
@@ -101,6 +104,8 @@ export const ExpenseAccessManager = () => {
     });
   };
 
+  const isValidEmailInput = newEmail.trim().length > 3 && newEmail.includes("@");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -124,7 +129,7 @@ export const ExpenseAccessManager = () => {
             Conceder Acesso
           </CardTitle>
           <CardDescription>
-            Digite o e-mail do usuário ou pesquise pelo nome para conceder acesso ao Cartão de Despesas.
+            Selecione ou digite um e-mail válido para liberar a permissão de visualização.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,7 +145,7 @@ export const ExpenseAccessManager = () => {
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAdd();
+                    if (e.key === "Enter" && isValidEmailInput) handleAdd();
                     if (e.key === "Escape") setShowSuggestions(false);
                   }}
                   className="pr-4"
@@ -176,7 +181,7 @@ export const ExpenseAccessManager = () => {
               </div>
               <Button
                 onClick={handleAdd}
-                disabled={isAdding || !newEmail.trim() || !newEmail.includes("@")}
+                disabled={isAdding || !isValidEmailInput}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md gap-2"
               >
                 {isAdding ? (
@@ -184,7 +189,7 @@ export const ExpenseAccessManager = () => {
                 ) : (
                   <Plus className="h-4 w-4" />
                 )}
-                Conceder
+                Conceder Acesso
               </Button>
             </div>
           </div>
@@ -232,12 +237,12 @@ export const ExpenseAccessManager = () => {
                 {filteredList.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                      Nenhum usuário encontrado.
+                      Nenhum usuário cadastrado na lista de acessos.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredList.map((entry) => {
-                    const isAdminMaster = entry.email.toLowerCase() === EXPENSE_ADMIN_EMAIL;
+                    const isAdminMaster = EXPENSE_ADMIN_EMAILS.includes(entry.email.toLowerCase());
                     return (
                       <TableRow
                         key={entry.id}
@@ -260,7 +265,7 @@ export const ExpenseAccessManager = () => {
                           {entry.granted_by}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {format(parseISO(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {entry.created_at ? format(parseISO(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
