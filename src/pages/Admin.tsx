@@ -12,8 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseSectorManager } from "@/components/ExpenseSectorManager";
-import { ExpenseAccessManager } from "@/components/ExpenseAccessManager";
-import { useIsExpenseAdmin } from "@/hooks/useExpenseAccess";
 
 // Gera semestres dinamicamente de 2026 até 2035
 const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
@@ -29,7 +27,6 @@ const Admin = () => {
   const { activeVersion, setActiveVersion } = useVersion();
   const { data: settings, isLoading: isLoadingSettings } = useAppSettings();
   const updateSetting = useUpdateAppSetting();
-  const isExpenseAdmin = useIsExpenseAdmin();
 
   const role = profile?.role || 'user';
   const isAdmin = role === 'admin';
@@ -64,8 +61,6 @@ const Admin = () => {
     });
   };
 
-  const totalCols = (canSeeSectors ? 1 : 0) + (isFullAccess ? 2 : 0) + 1 + (isExpenseAdmin ? 1 : 0);
-
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -77,13 +72,12 @@ const Admin = () => {
 
       <Tabs defaultValue={defaultTab}>
         <TabsList className={cn(
-          "grid w-full md:w-[900px]",
-          totalCols === 5 ? "grid-cols-5" : totalCols === 4 ? "grid-cols-4" : totalCols === 2 ? "grid-cols-2" : "grid-cols-1"
+          "grid w-full md:w-[800px]",
+          isFullAccess ? "grid-cols-4" : (isDiretorUnidade ? "grid-cols-2" : "grid-cols-1")
         )}>
           {canSeeSectors && <TabsTrigger value="sectors">Setores</TabsTrigger>}
           {isFullAccess && <TabsTrigger value="organization">Organização</TabsTrigger>}
           {isFullAccess && <TabsTrigger value="users">Usuários</TabsTrigger>}
-          {isExpenseAdmin && <TabsTrigger value="expense_access">Acesso Despesas</TabsTrigger>}
           <TabsTrigger value="settings">TROCAR SEMESTRES</TabsTrigger>
         </TabsList>
         
@@ -113,12 +107,6 @@ const Admin = () => {
         {isFullAccess && (
           <TabsContent value="users">
             <AdminUsuarios />
-          </TabsContent>
-        )}
-
-        {isExpenseAdmin && (
-          <TabsContent value="expense_access">
-            <ExpenseAccessManager />
           </TabsContent>
         )}
 

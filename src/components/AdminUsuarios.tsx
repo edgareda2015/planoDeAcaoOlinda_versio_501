@@ -45,12 +45,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Search, Shield, Building, MapPin, Loader2, UserCog, RefreshCw, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { UserPlus, Search, Shield, Building, MapPin, Loader2, UserCog, RefreshCw, Trash2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
+import { useExpenseAccessList, useAddExpenseAccess, useRemoveExpenseAccess } from "@/hooks/useExpenseAccess";
 
 const userFormSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -69,6 +71,11 @@ export const AdminUsuarios = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const queryClient = useQueryClient();
+
+  // Hooks do Cartão de Despesas
+  const { data: expenseAccessList } = useExpenseAccessList();
+  const addExpenseAccess = useAddExpenseAccess();
+  const removeExpenseAccess = useRemoveExpenseAccess();
 
   // Busca Usuários (Profiles)
   const { data: users, isLoading, error: usersError } = useQuery({
@@ -514,13 +521,14 @@ export const AdminUsuarios = () => {
               <TableHead>Nível de Acesso</TableHead>
               <TableHead>Regional / Unidade</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Cartão Despesas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span>Carregando base de usuários...</span>
@@ -529,13 +537,13 @@ export const AdminUsuarios = () => {
               </TableRow>
             ) : usersError ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-destructive">
+                <TableCell colSpan={6} className="h-24 text-center text-destructive">
                   Erro ao carregar usuários. Verifique as permissões.
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   Nenhum usuário encontrado.
                 </TableCell>
               </TableRow>
@@ -578,6 +586,47 @@ export const AdminUsuarios = () => {
                     )}>
                       {user.ativo ? "Ativo" : "Inativo"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {(() => {
+                      const userEmail = user.email?.toLowerCase()?.trim();
+                      const isAdminUser = user.role === 'admin' || userEmail === 'edgar.tavares@mauriciodenassau.edu.br' || userEmail === 'edgareda2015@gmail.com';
+                      const accessEntry = expenseAccessList?.find(a => a.email.toLowerCase() === userEmail);
+                      const hasAccess = isAdminUser || !!accessEntry;
+                      const isPending = addExpenseAccess.isPending || removeExpenseAccess.isPending;
+
+                      if (isAdminUser) {
+                        return (
+                          <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 py-1 px-2 rounded-md">
+                            <CreditCard className="h-3.5 w-3.5" />
+                            <span>Liberado (Admin)</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center justify-center gap-2">
+                          <Switch
+                            checked={hasAccess}
+                            disabled={isPending || !userEmail}
+                            onCheckedChange={(checked) => {
+                              if (!userEmail) return;
+                              if (checked) {
+                                addExpenseAccess.mutate(userEmail);
+                              } else if (accessEntry) {
+                                removeExpenseAccess.mutate({ id: accessEntry.id, email: userEmail });
+                              }
+                            }}
+                          />
+                          <span className={cn(
+                            "text-xs font-semibold min-w-[32px]",
+                            hasAccess ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                          )}>
+                            {hasAccess ? "Sim" : "Não"}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button 
