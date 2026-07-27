@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useVersion } from "@/contexts/VersionContext";
 import { useUnits } from "@/hooks/useOrganization";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { useHasExpenseAccess } from "@/hooks/useExpenseAccess";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -79,6 +80,7 @@ export const SidebarContent = () => {
   const { profile, user, signOut } = useAuth();
   const { activeVersion, activeUnitId } = useVersion();
   const navigate = useNavigate();
+  const { data: hasExpenseAccess } = useHasExpenseAccess();
 
   const currentUnitName = useMemo(() => {
     if (profile?.role === 'admin' && activeUnitId === 'all') return "Visão Global";
@@ -206,6 +208,9 @@ export const SidebarContent = () => {
             .filter(item => {
               if (item.id === 'regional-dashboard') {
                 return profile?.role === 'admin' || profile?.role === 'diretor_regional';
+              }
+              if (item.id === 'expenses') {
+                return hasExpenseAccess === true;
               }
               return true;
             })
