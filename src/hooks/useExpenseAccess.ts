@@ -106,7 +106,10 @@ export const useAddExpenseAccess = () => {
           throw new Error("Este e-mail já possui acesso.");
         }
         if (error.code === "42P01") {
-          throw new Error("A tabela 'expense_access' ainda não foi criada no Supabase. Execute a migração SQL no console do Supabase.");
+          throw new Error("A tabela 'expense_access' ainda não foi criada no Supabase.");
+        }
+        if (error.message?.includes("row-level security") || error.code === "42501") {
+          throw new Error("A política de RLS bloqueou a alteração. Execute o SQL de permissão no console do Supabase.");
         }
         throw new Error(error.message);
       }
@@ -139,7 +142,12 @@ export const useRemoveExpenseAccess = () => {
         .delete()
         .eq("id", id);
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.message?.includes("row-level security") || error.code === "42501") {
+          throw new Error("A política de RLS bloqueou a exclusão. Execute o SQL de permissão no console do Supabase.");
+        }
+        throw new Error(error.message);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense_access"] });
