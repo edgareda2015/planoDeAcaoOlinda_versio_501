@@ -10,6 +10,7 @@ import { DailyTimeline } from "./DailyTimeline";
 import { DailyTrendChart } from "./DailyTrendChart"; // Importar novo gráfico
 import { getSectorIcon, getSectorColors } from "@/lib/sector-config";
 import { TotalProgressTracker } from "./TotalProgressTracker";
+import PageHeader from "./PageHeader";
 import { useMemo } from "react";
 
 type SectorStatus = "excellent" | "good" | "regular" | "attention" | "critical";
@@ -134,15 +135,15 @@ export const Dashboard = () => {
   const totalActions = actions.length;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col lg:flex-row items-center gap-8">
-        <div className="space-y-2 w-full lg:w-auto">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard Executivo</h1>
-          <p className="text-muted-foreground">Visão geral do desempenho dos setores.</p>
-        </div>
-        <div className="w-full flex-1">
-          <TotalProgressTracker achieved={totalAchieved} total={totalTarget} />
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        category="VISÃO EXECUTIVA & POWER BI"
+        title="Dashboard Executivo"
+        description="Acompanhamento em tempo real de metas, captação por setor, evolução diária e taxa de conversão."
+      />
+
+      <div className="w-full mb-6">
+        <TotalProgressTracker achieved={totalAchieved} total={totalTarget} />
       </div>
 
       <div className="space-y-8">

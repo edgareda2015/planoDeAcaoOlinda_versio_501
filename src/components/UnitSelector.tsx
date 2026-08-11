@@ -44,22 +44,22 @@ export const UnitSelector = () => {
   }
 
   return (
-    <div className="px-4 py-2 border-b border-border bg-muted/30">
-      <div className="flex items-center gap-2 mb-1.5">
-        <MapPin className="h-3 w-3 text-muted-foreground" />
-        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Filtro de Unidade</span>
+    <div className="p-2.5 rounded-xl border border-white/10 bg-[#132238]/80 backdrop-blur-sm shadow-inner my-1">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <MapPin className="h-3 w-3 text-[#D4AF37]" />
+        <span className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">Unidade Ativa</span>
       </div>
       <Select
         value={activeUnitId}
         onValueChange={setActiveUnitId}
       >
-        <SelectTrigger className="w-full h-8 text-xs bg-white">
+        <SelectTrigger className="w-full h-8 text-xs bg-[#0B1727] text-white border-white/20 hover:border-amber-400/50 focus:ring-amber-400">
           <SelectValue placeholder={isAdmin ? "Todas as Unidades" : "Selecione a Unidade"} />
         </SelectTrigger>
-        <SelectContent>
-          {isAdmin && isDashboardDeAcoes && <SelectItem value="all">Visão Global (Todas)</SelectItem>}
+        <SelectContent className="bg-[#0B1727] text-white border-slate-700">
+          {isAdmin && isDashboardDeAcoes && <SelectItem value="all" className="focus:bg-white/10 focus:text-white">Visão Global (Todas)</SelectItem>}
           {filteredUnits?.map((unit) => (
-            <SelectItem key={unit.id} value={unit.id}>
+            <SelectItem key={unit.id} value={unit.id} className="focus:bg-white/10 focus:text-white">
               {unit.name}
             </SelectItem>
           ))}

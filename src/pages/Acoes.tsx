@@ -29,6 +29,8 @@ import { useUnits } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
 
 
+import PageHeader from "@/components/PageHeader";
+
 // Componente auxiliar para renderizar o conteúdo da aba de Ações
 const ActionTabContent = ({
   actions,
@@ -49,48 +51,52 @@ const ActionTabContent = ({
   handleExportPdf: (type: 'matricula' | 'coordenacao' | 'administrativo') => void;
   type: 'matricula' | 'coordenacao' | 'administrativo';
 }) => (
-  <TabsContent value={type} className="mt-4 space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <Button onClick={handleOpenCreateActionModal} className="bg-primary hover:bg-primary/90">
-        <PlusCircle className="mr-2 h-4 w-4" />
-        Cadastrar Ação de {typeLabel}
+  <TabsContent value={type} className="mt-6 space-y-6">
+    <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+      <Button onClick={handleOpenCreateActionModal} variant="gold" className="gap-2">
+        <PlusCircle className="h-4 w-4" />
+        Cadastrar Ação ({typeLabel})
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" disabled={isLoading || !actions.length} className="border-primary text-primary hover:bg-primary/5">
-            <FileDown className="mr-2 h-4 w-4" />
-            Exportar (Tabela)
+          <Button variant="outline" disabled={isLoading || !actions.length} className="gap-2 border-slate-200">
+            <FileDown className="h-4 w-4 text-[#0B1727]" />
+            Exportar Relatório
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleExportExcel(type)}>Exportar para Excel (.xlsx)</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleExportPdf(type)}>Exportar para PDF (.pdf)</DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onClick={() => handleExportExcel(type)} className="cursor-pointer">
+            Exportar para Excel (.xlsx)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExportPdf(type)} className="cursor-pointer">
+            Exportar para PDF (.pdf)
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
     {isLoading ? (
-      <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
+      </div>
     ) : (
       <ActionKanbanBoard actions={actions} onEditAction={handleOpenEditActionModal} />
     )}
   </TabsContent>
 );
 
-
 const Acoes = () => {
   // --- State para Ações (Matrícula/Coordenação/Administrativo) ---
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const { profile } = useAuth();
-  const { data: actions, isLoading: isLoadingActions, isError: isErrorActions } = useActions();
+  const { data: actions, isLoading: isLoadingActions } = useActions();
 
   // --- State para Principais Ações ---
   const [isKeyActionModalOpen, setIsKeyActionModalOpen] = useState(false);
   const [editingKeyAction, setEditingKeyAction] = useState<KeyAction | null>(null);
   const [actionToDelete, setActionToDelete] = useState<KeyAction | null>(null);
-  const { data: keyActions, isLoading: isLoadingKeyActions, isError: isErrorKeyActions } = useKeyActions();
+  const { data: keyActions } = useKeyActions();
   const { mutate: deleteKeyAction, isPending: isDeletingKeyAction } = useDeleteKeyAction();
-
 
   // --- Lógica para Ações (Matrícula/Coordenação/Administrativo) ---
   const matriculaActions = useMemo(() => {
@@ -160,17 +166,6 @@ const Acoes = () => {
     }
   };
 
-  // --- Lógica para Principais Ações ---
-  const handleOpenCreateKeyActionModal = () => {
-    setEditingKeyAction(null);
-    setIsKeyActionModalOpen(true);
-  };
-
-  const handleOpenEditKeyActionModal = (action: KeyAction) => {
-    setEditingKeyAction(action);
-    setIsKeyActionModalOpen(true);
-  };
-
   const handleDeleteKeyActionConfirm = () => {
     if (actionToDelete) {
       deleteKeyAction(actionToDelete.id, {
@@ -179,37 +174,13 @@ const Acoes = () => {
     }
   };
 
-  const handleExportKeyActions = (type: 'pdf' | 'excel') => {
-    if (keyActions && keyActions.length > 0) {
-      if (type === 'pdf') {
-        exportKeyActionsToPdf(keyActions);
-      } else {
-        exportKeyActionsToExcel(keyActions);
-      }
-    }
-  };
-
-  const { activeVersion, activeUnitId } = useVersion();
-  const { data: units } = useUnits();
-  
-  const currentUnitName = useMemo(() => {
-    if (profile?.role === 'admin' && activeUnitId === 'all') return "Visão Global";
-    const unit = units?.find(u => u.id === (activeUnitId || profile?.unit_id));
-    return unit?.name || "Minha Unidade";
-  }, [units, activeUnitId, profile]);
-
-  const currentSemester = useMemo(() => {
-    return activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion;
-  }, [activeVersion]);
-
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Gestão de Ações</h1>
-        <p className="text-muted-foreground">
-          Visualize, cadastre e gerencie todas as ações para atingir as metas.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        category="OPERAÇÃO & RITUAIS"
+        title="Gestão de Ações"
+        description="Visualize, cadastre e acompanhe o status de execução de todas as ações estratégicas por setor."
+      />
 
       <Tabs defaultValue="matricula">
         <TabsList className="grid w-full grid-cols-3 h-auto p-0 bg-transparent border-b border-border rounded-none">

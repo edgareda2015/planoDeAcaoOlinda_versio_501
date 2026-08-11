@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import PageHeader from "@/components/PageHeader";
 
 const RegionalDashboard = () => {
   const { profile } = useAuth();
@@ -70,28 +71,23 @@ const RegionalDashboard = () => {
   if (!stats) return null;
 
   return (
-    <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-black text-foreground tracking-tight uppercase">
-            Dashboard de Ações
-          </h1>
-          <p className="text-muted-foreground">
-            {profile?.role === 'admin' ? "Visão consolidada de todas as unidades da rede." : "Visão consolidada das unidades sob sua gestão."}
-          </p>
-        </div>
-        
+    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
+      <PageHeader
+        category="PANORAMA REDE & REGIONAL"
+        title="Dashboard de Ações"
+        description={profile?.role === 'admin' ? "Visão consolidada de todas as unidades da rede de ensino." : "Visão consolidada das unidades sob sua gestão regional."}
+      >
         <div className="flex gap-2">
-          <Badge variant="outline" className="px-4 py-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
-            <Users className="w-4 h-4 mr-2" />
+          <Badge variant="navy" className="px-3.5 py-1.5 font-bold gap-1.5">
+            <Users className="w-4 h-4 text-[#D4AF37]" />
             {stats.totals.unitsCount} Unidades
           </Badge>
-          <Badge variant="outline" className="px-4 py-1.5 border-warning/20 bg-warning/5 text-warning-foreground font-bold">
-            <BarChart3 className="w-4 h-4 mr-2" />
+          <Badge variant="gold" className="px-3.5 py-1.5 font-bold gap-1.5">
+            <BarChart3 className="w-4 h-4 text-[#0B1727]" />
             {stats.totals.actions} Ações
           </Badge>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Grid de Rankings Principais */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

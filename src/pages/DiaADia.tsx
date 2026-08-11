@@ -23,6 +23,7 @@ import { Loader2, XCircle, CalendarIcon, Save, Expand, Minimize, FileDown, Trash
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
+import PageHeader from "@/components/PageHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -266,14 +267,13 @@ const DiaADia = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className={cn(isFullScreen && "hidden")}>
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Lançamento Dia a Dia</h1>
-          <p className="text-muted-foreground">
-            Registre os resultados diários. Clique em uma célula na tabela para editar o valor.
-          </p>
-        </div>
+        <PageHeader
+          category="ACOMPANHAMENTO DIÁRIO"
+          title="Lançamento Dia a Dia"
+          description="Registre a quantidade de captações diárias por setor. Clique em qualquer célula da tabela para fazer edições rápidas."
+        />
 
         <Card className="mt-8">
           <CardHeader>

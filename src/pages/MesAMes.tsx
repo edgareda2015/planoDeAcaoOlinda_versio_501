@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MonthlyReport } from "@/components/MonthlyReport";
 import { exportMonthlyReportToPdf } from "@/lib/exportUtils";
 import { format } from "date-fns";
+import PageHeader from "@/components/PageHeader";
 
 // Sectors to be excluded from this page and shown on the support dashboard instead
 const SUPPORT_SECTORS = ['REMATRÍCULA', 'EAD', 'EAD/PÓS', 'PÓS', 'CRA', 'CRA/RETENÇÃO'];
@@ -119,19 +120,17 @@ const MesAMes = () => {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Relatório Mês a Mês</h1>
-          <p className="text-muted-foreground">
-            Acompanhamento consolidado do desempenho mensal dos setores de captação.
-          </p>
-        </div>
-        <Button onClick={handleExport} disabled={isLoading || reportData.length === 0}>
-          <FileDown className="mr-2 h-4 w-4" />
+    <div className="space-y-6">
+      <PageHeader
+        category="RELATÓRIOS CONSOLIDADOS"
+        title="Relatório Mês a Mês"
+        description="Acompanhamento mensal comparativo do desempenho de captação e cumprimento de metas por setor."
+      >
+        <Button onClick={handleExport} disabled={isLoading || reportData.length === 0} variant="gold" className="gap-2">
+          <FileDown className="h-4 w-4" />
           Exportar PDF
         </Button>
-      </div>
+      </PageHeader>
       <MonthlyReport goals={goals} sectors={mainSectors} achievements={achievements} />
     </div>
   );

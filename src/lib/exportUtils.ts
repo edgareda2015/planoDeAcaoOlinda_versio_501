@@ -334,11 +334,11 @@ export const exportExpensesToExcel = (expenses: any[], fileName: string = "carta
 
   const worksheetData = sortedExpenses.map(expense => ({
     'Setor': expense.expense_sectors?.name || 'N/A',
-    'Data da Compra': format(new Date(expense.purchase_date.replace(/-/g, '/')), 'dd/MM/yyyy'),
+    'Data da Compra': expense.purchase_date ? format(new Date(expense.purchase_date.replace(/-/g, '/')), 'dd/MM/yyyy') : '—',
     'Valor': expense.value,
     'Descrição': expense.description,
-    'Nº Chamado': expense.ticket_number,
-    'Data do Chamado': format(new Date(expense.ticket_date.replace(/-/g, '/')), 'dd/MM/yyyy'),
+    'Nº Chamado': expense.ticket_number || '—',
+    'Data do Chamado': expense.ticket_date ? format(new Date(expense.ticket_date.replace(/-/g, '/')), 'dd/MM/yyyy') : '—',
     'Status': expense.status,
     'Observação': expense.observation || '',
   }));

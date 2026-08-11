@@ -155,9 +155,9 @@ const LoginForm = () => {
             <FormMessage />
           </FormItem>
         )}/>
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-xl shadow-lg transition-all active:scale-[0.98]" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Entrar
+        <Button type="submit" variant="gold" className="w-full h-12 text-base font-extrabold shadow-lg transition-all active:scale-[0.98]" disabled={isPending}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#0B1727]" />}
+          Entrar na Plataforma
         </Button>
       </form>
     </Form>
@@ -173,8 +173,8 @@ const Login = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0B1727]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
       </div>
     );
   }
@@ -184,28 +184,31 @@ const Login = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary p-4">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white mb-4 shadow-xl border border-border overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-[#0B1727] p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white mb-4 shadow-2xl border border-amber-400/30 overflow-hidden">
             <img 
               src="/uninassau-logo.png" 
               alt="UNINASSAU Logo" 
               className="w-full h-full object-contain p-2"
             />
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight uppercase">Plano de Ação</h1>
-          <p className="text-lg text-primary font-semibold uppercase tracking-widest">Captação</p>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Plano de Ação</h1>
+          <span className="text-xs text-[#D4AF37] font-extrabold uppercase tracking-[0.25em] mt-1">UNINASSAU</span>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Bem-vindo!</CardTitle>
-            <CardDescription>Acesse sua conta para continuar.</CardDescription>
+        <Card className="border border-white/10 bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl font-extrabold text-[#0B1727]">Acesso Corporativo</CardTitle>
+            <CardDescription className="text-slate-500 text-xs">Digite suas credenciais institucionais para entrar.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <LoginForm />
           </CardContent>
         </Card>
+        <p className="text-center text-xs text-slate-400 font-medium">
+          © 2026 Ser Educacional • Desenvolvido por <span className="text-[#D4AF37] font-extrabold">V3L0Z</span>
+        </p>
       </div>
     </div>
   );

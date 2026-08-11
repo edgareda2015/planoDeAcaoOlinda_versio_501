@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2, XCircle, PlusCircle, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 const LinksUteis = () => {
   const { activeUnitId } = useVersion();
@@ -56,17 +57,17 @@ const LinksUteis = () => {
 
   return (
     <>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Links Úteis</h1>
-            <p className="text-muted-foreground">Acesse sistemas e recursos importantes em um só lugar.</p>
-          </div>
-          <Button onClick={handleOpenCreateModal}>
-            <PlusCircle className="mr-2 h-4 w-4" />
+      <div className="space-y-6">
+        <PageHeader
+          category="RECURSOS & FERRAMENTAS"
+          title="Links Úteis"
+          description="Central de acesso rápido para sistemas institucionais, planilhas e portais de apoio."
+        >
+          <Button onClick={handleOpenCreateModal} variant="gold" className="gap-2">
+            <PlusCircle className="h-4 w-4" />
             Adicionar Link
           </Button>
-        </div>
+        </PageHeader>
 
         {isLoading && (
           <div className="flex items-center justify-center p-8">

@@ -23,62 +23,46 @@ const Header = () => {
     return activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion;
   }, [activeVersion]);
 
-  const semesters = ["2025.2", "2026.1", "2026.2"];
-
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-8">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 md:px-8 shadow-sm">
       <div className="flex items-center gap-4">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
+            <Button variant="outline" size="icon" className="md:hidden border-slate-200">
+              <Menu className="h-5 w-5 text-slate-700" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="w-64 p-0 bg-[#0B1727] border-none">
             <SidebarContent />
           </SheetContent>
         </Sheet>
         
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-4">
           {profile?.role === 'diretor_unidade' && (
-            <>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Unidade Atual</span>
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  <span className="text-lg font-black text-foreground tracking-tight">{currentUnitName}</span>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-border" />
-            </>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100/80 border border-slate-200/60">
+              <Building2 className="h-4 w-4 text-[#0B1727]" />
+              <span className="text-xs font-bold text-slate-800">{currentUnitName}</span>
+            </div>
           )}
           
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Semestre</span>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="text-lg font-black text-foreground tracking-tight">{currentSemester}</span>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300/50">
+            <Calendar className="h-4 w-4 text-amber-700" />
+            <span className="text-xs font-extrabold text-amber-900">Semestre: {currentSemester}</span>
           </div>
         </div>
 
         {/* Mobile View Title */}
         <div className="md:hidden flex flex-col">
-           <span className="text-[9px] font-bold text-primary uppercase tracking-widest leading-none">Captação</span>
-           {profile?.role === 'diretor_unidade' && (
-             <span className="text-sm font-black text-foreground uppercase truncate w-32">{currentUnitName}</span>
-           )}
+           <span className="text-[10px] font-black text-[#D4AF37] uppercase tracking-widest leading-none">UNINASSAU</span>
+           <span className="text-xs font-black text-slate-900 uppercase truncate w-36">Plano de Ação</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="hidden sm:flex flex-col items-end mr-2">
-           <span className="text-[10px] font-bold text-muted-foreground uppercase">Status do Sistema</span>
-           <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-green-600 uppercase tracking-tighter">Online</span>
-           </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-tight">Sistema Online</span>
         </div>
       </div>
     </header>

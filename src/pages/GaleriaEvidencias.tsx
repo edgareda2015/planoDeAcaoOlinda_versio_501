@@ -29,6 +29,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PageHeader from "@/components/PageHeader";
 
 export default function GaleriaEvidencias() {
   const navigate = useNavigate();
@@ -169,21 +170,17 @@ export default function GaleriaEvidencias() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-16">
+    <div className="space-y-6 animate-fade-in pb-16">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">
-            Galeria de Evidências
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Registro visual e acompanhamento fotográfico das atividades.
-          </p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 shadow-md">
-          <Plus className="h-5 w-5" /> Novo Álbum
+      <PageHeader
+        category="EVIDÊNCIAS & REGISTROS"
+        title="Galeria de Evidências"
+        description="Acompanhamento fotográfico e comprovação de execução das ações do plano."
+      >
+        <Button onClick={() => setIsCreateOpen(true)} variant="gold" className="gap-2">
+          <Plus className="h-4 w-4" /> Novo Álbum
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Dashboard de Indicadores */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

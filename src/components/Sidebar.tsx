@@ -17,22 +17,20 @@ import {
   Star,
   Image,
   CreditCard,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils";
-import { buttonVariants, Button } from "@/components/ui/button";
 import { useSectors } from "@/hooks/useGoals";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVersion } from "@/contexts/VersionContext";
 import { useUnits } from "@/hooks/useOrganization";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { useHasExpenseAccess } from "@/hooks/useExpenseAccess";
-
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { UnitSelector } from "@/components/UnitSelector";
 
 const staticTopItems = [
   { icon: FileText, label: "Ações", id: "actions", href: "/" },
@@ -48,49 +46,18 @@ const staticTopItems = [
 
 const staticBottomItem = { icon: Cog, label: "Gestão", id: "admin", href: "/admin" };
 
-import { UnitSelector } from "@/components/UnitSelector";
-
-// Configuração de cores para os grupos
-const colorConfig = {
-  main: {
-    activeBg: "bg-warning/80",
-    activeText: "text-warning-foreground",
-    hoverBg: "hover:bg-warning/20",
-  },
-  matricula: {
-    activeBg: "bg-primary",
-    activeText: "text-primary-foreground",
-    hoverBg: "hover:bg-primary/20",
-  },
-  coordenacao: {
-    activeBg: "bg-accent",
-    activeText: "text-accent-foreground",
-    hoverBg: "hover:bg-accent/20",
-  },
-  administrativo: {
-    activeBg: "bg-violet-600", // Roxo
-    activeText: "text-white",
-    hoverBg: "hover:bg-violet-600/20",
-  },
-};
-
 export const SidebarContent = () => {
   const { data: sectors, isLoading } = useSectors();
-  const { data: units } = useUnits();
   const { profile, user, signOut } = useAuth();
-  const { activeVersion, activeUnitId } = useVersion();
   const navigate = useNavigate();
   const { data: hasExpenseAccess } = useHasExpenseAccess();
 
-  const currentUnitName = useMemo(() => {
-    if (profile?.role === 'admin' && activeUnitId === 'all') return "Visão Global";
-    const unit = units?.find(u => u.id === (activeUnitId || profile?.unit_id));
-    return unit?.name || "Minha Unidade";
-  }, [units, activeUnitId, profile]);
-
-  const currentSemester = useMemo(() => {
-    return activeVersion === 'all' || activeVersion === 'todos' ? '2026.1' : activeVersion;
-  }, [activeVersion]);
+  const userInitials = useMemo(() => {
+    if (!profile?.first_name) return "AD";
+    const first = profile.first_name.charAt(0).toUpperCase();
+    const last = profile.last_name ? profile.last_name.charAt(0).toUpperCase() : "";
+    return `${first}${last}`;
+  }, [profile]);
 
   const handleLogout = async () => {
     try {
@@ -104,256 +71,190 @@ export const SidebarContent = () => {
 
   const matriculaItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => {
-        const isType = sector.type === 'matricula';
-        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
-        const isAllowed = true; // Removida filtragem por coordenador
-        return isType && isNotOrganico && isAllowed;
-      })
+      ?.filter((sector) => sector.type === 'matricula' && sector.name.toUpperCase() !== "ORGÂNICO")
       .map((sector) => ({
         icon: Building,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors, profile]);
+  }, [sectors]);
 
   const coordenacaoItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => {
-        const isType = sector.type === 'coordenacao';
-        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
-        const isAllowed = true; // Removida filtragem por coordenador
-        return isType && isNotOrganico && isAllowed;
-      })
+      ?.filter((sector) => sector.type === 'coordenacao' && sector.name.toUpperCase() !== "ORGÂNICO")
       .map((sector) => ({
         icon: Users,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors, profile]);
+  }, [sectors]);
 
   const administrativoItems = useMemo(() => {
     return sectors
-      ?.filter((sector) => {
-        const isType = sector.type === 'administrativo';
-        const isNotOrganico = sector.name.toUpperCase() !== "ORGÂNICO";
-        const isAllowed = true; // Removida filtragem por coordenador
-        return isType && isNotOrganico && isAllowed;
-      })
+      ?.filter((sector) => sector.type === 'administrativo' && sector.name.toUpperCase() !== "ORGÂNICO")
       .map((sector) => ({
         icon: Star,
         label: sector.name,
         id: sector.id,
         href: `/setor/${slugify(sector.name)}`,
       })) || [];
-  }, [sectors, profile]);
+  }, [sectors]);
 
-  // Função auxiliar para aplicar classes de link
-  const getLinkClasses = (isActive: boolean, config: typeof colorConfig.main) => {
-    const baseClasses = "w-full justify-start gap-3";
-    
-    if (isActive) {
-      return cn(
-        buttonVariants({ variant: "ghost" }),
-        baseClasses,
-        config.activeBg,
-        config.activeText,
-        "shadow-md",
-      );
-    }
-    
-    return cn(
-      buttonVariants({ variant: "ghost" }),
-      baseClasses,
-      "text-foreground",
-      config.hoverBg,
-      "hover:text-foreground"
+  const renderNavLink = (item: { icon: any; label: string; href: string }, exact = false) => {
+    const Icon = item.icon;
+    return (
+      <NavLink
+        key={item.href}
+        to={item.href}
+        end={exact}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center justify-between w-full px-3.5 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all duration-150 group",
+            isActive
+              ? "bg-[#D4AF37] text-[#0B1727] font-bold shadow-md shadow-amber-500/10"
+              : "text-slate-300 hover:text-white hover:bg-white/10"
+          )
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <div className="flex items-center gap-3 truncate">
+              <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-[#0B1727]" : "text-slate-400 group-hover:text-amber-400")} />
+              <span className="truncate">{item.label}</span>
+            </div>
+            {isActive && <ChevronRight className="h-4 w-4 text-[#0B1727] shrink-0" />}
+          </>
+        )}
+      </NavLink>
     );
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-4 p-6 border-b border-border bg-gradient-to-b from-background to-secondary/20">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-md border border-border overflow-hidden">
-              <img 
-                src="/uninassau-logo.png" 
-                alt="UNINASSAU Logo" 
-                className="w-full h-full object-contain p-1.5"
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-sm font-black text-foreground uppercase tracking-tighter leading-none">
-                Plano de Ação
-              </h1>
-              <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] mt-1">
-                Captação
-              </p>
-            </div>
-          </div>
+    <div className="flex h-full flex-col bg-[#0B1727] text-white">
+      {/* Header Institucional da Sidebar */}
+      <div className="flex items-center gap-3 p-5 border-b border-white/10 bg-[#081220]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-md border border-amber-400/30 overflow-hidden shrink-0">
+          <img 
+            src="/uninassau-logo.png" 
+            alt="UNINASSAU Logo" 
+            className="w-full h-full object-contain p-1"
+          />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <h1 className="text-sm font-black text-white uppercase tracking-tight truncate">
+            Plano de Ação
+          </h1>
+          <span className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-[0.2em]">
+            UNINASSAU
+          </span>
         </div>
       </div>
 
       <RoleGuard allowedRoles={['admin', 'diretor_regional']}>
-        <UnitSelector />
+        <div className="px-3 pt-3">
+          <UnitSelector />
+        </div>
       </RoleGuard>
 
-      <div className="flex-grow overflow-y-auto">
-        <nav className="space-y-1 p-4">
-          {/* Main navigation (Amarelo/Warning) */}
-          {staticTopItems
-            .filter(item => {
-              if (item.id === 'regional-dashboard') {
-                return profile?.role === 'admin' || profile?.role === 'diretor_regional';
-              }
-              if (item.id === 'expenses') {
-                return hasExpenseAccess === true;
-              }
-              return true;
-            })
-            .map((item) => (
-            <NavLink
-              key={item.id}
-              to={item.href}
-              end={item.href === "/"}
-              className={({ isActive }) => getLinkClasses(isActive, colorConfig.main)}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+      {/* Lista de Navegação com Scrollbar customizada */}
+      <div className="flex-grow overflow-y-auto custom-scrollbar px-3 py-3 space-y-1">
+        {/* Subtítulo de Operação / Navegação Principal */}
+        <div className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-widest text-[#D4AF37]/80">
+          OPERAÇÃO & NAVEGAÇÃO
+        </div>
 
-          <Accordion type="multiple" defaultValue={["matricula", "coordenacao", "administrativo"]} className="w-full">
-            {/* Matrícula (Azul/Primary) */}
-            {matriculaItems.length > 0 && (
-              <AccordionItem value="matricula" className="border-none">
-                <AccordionTrigger className={cn(
-                  "rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wider hover:no-underline mt-4",
-                  colorConfig.matricula.activeBg,
-                  colorConfig.matricula.activeText
-                )}>
-                  Comercial / QG
-                </AccordionTrigger>
-                <AccordionContent className="pt-1">
-                  {matriculaItems.map((item) => (
-                    <NavLink
-                      key={item.id}
-                      to={item.href}
-                      className={({ isActive }) => getLinkClasses(isActive, colorConfig.matricula)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+        {staticTopItems
+          .filter(item => {
+            if (item.id === 'regional-dashboard') {
+              return profile?.role === 'admin' || profile?.role === 'diretor_regional';
+            }
+            if (item.id === 'expenses') {
+              return hasExpenseAccess === true;
+            }
+            return true;
+          })
+          .map((item) => renderNavLink(item, item.href === "/"))}
 
-            {/* Coordenação (Verde/Accent) */}
-            {coordenacaoItems.length > 0 && (
-              <AccordionItem value="coordenacao" className="border-none">
-                <AccordionTrigger className={cn(
-                  "rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wider hover:no-underline mt-4",
-                  colorConfig.coordenacao.activeBg,
-                  colorConfig.coordenacao.activeText
-                )}>
-                  Coordenação
-                </AccordionTrigger>
-                <AccordionContent className="pt-1">
-                  {coordenacaoItems.map((item) => (
-                    <NavLink
-                      key={item.id}
-                      to={item.href}
-                      className={({ isActive }) => getLinkClasses(isActive, colorConfig.coordenacao)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Ritual de Gestão (Administrativo) (Roxo/Violet) */}
-            {administrativoItems.length > 0 && (
-              <AccordionItem value="administrativo" className="border-none">
-                <AccordionTrigger className={cn(
-                  "rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wider hover:no-underline mt-4",
-                  colorConfig.administrativo.activeBg,
-                  colorConfig.administrativo.activeText
-                )}>
-                  Ritual de Gestão
-                </AccordionTrigger>
-                <AccordionContent className="pt-1">
-                  {administrativoItems.map((item) => (
-                    <NavLink
-                      key={item.id}
-                      to={item.href}
-                      className={({ isActive }) => getLinkClasses(isActive, colorConfig.administrativo)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-
-          {isLoading && (
-            <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Carregando...
-            </div>
+        <Accordion type="multiple" defaultValue={["matricula", "coordenacao", "administrativo"]} className="w-full pt-2">
+          {/* Matrícula (Comercial / QG) */}
+          {matriculaItems.length > 0 && (
+            <AccordionItem value="matricula" className="border-none my-1">
+              <AccordionTrigger className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#D4AF37] hover:no-underline rounded-lg transition-colors">
+                COMERCIAL / QG
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-0 pl-1 space-y-0.5">
+                {matriculaItems.map((item) => renderNavLink(item))}
+              </AccordionContent>
+            </AccordionItem>
           )}
-        </nav>
-      </div>
 
-      {/* Seção inferior com Perfil e Logout */}
-      <div className="border-t p-4 space-y-2">
-        {profile && (
-          <div className="flex items-center gap-3 rounded-md p-2">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback>
-                <User className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="grid gap-0.5 text-xs overflow-hidden">
-              <div className="font-medium truncate">{profile?.first_name || 'Usuário'} {profile?.last_name || ''}</div>
-              <div className="text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</div>
-            </div>
+          {/* Coordenação */}
+          {coordenacaoItems.length > 0 && (
+            <AccordionItem value="coordenacao" className="border-none my-1">
+              <AccordionTrigger className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#D4AF37] hover:no-underline rounded-lg transition-colors">
+                COORDENAÇÃO
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-0 pl-1 space-y-0.5">
+                {coordenacaoItems.map((item) => renderNavLink(item))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* Ritual de Gestão */}
+          {administrativoItems.length > 0 && (
+            <AccordionItem value="administrativo" className="border-none my-1">
+              <AccordionTrigger className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#D4AF37] hover:no-underline rounded-lg transition-colors">
+                RITUAL DE GESTÃO
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-0 pl-1 space-y-0.5">
+                {administrativoItems.map((item) => renderNavLink(item))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+        </Accordion>
+
+        {isLoading && (
+          <div className="flex items-center justify-center p-3 text-xs text-slate-400">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#D4AF37]" />
+            Carregando setores...
           </div>
         )}
-        
+      </div>
+
+      {/* Seção Inferior: Gestão (se autorizado) + Card de Usuário */}
+      <div className="border-t border-white/10 p-3 space-y-2 bg-[#081220]">
         <RoleGuard allowedRoles={['admin', 'diretor_unidade', 'diretor_regional']}>
-          <NavLink
-            to={staticBottomItem.href}
-            className={({ isActive }) =>
-              cn(
-                buttonVariants({ variant: isActive ? "default" : "ghost" }),
-                "w-full justify-start gap-3",
-                isActive && "shadow-md",
-                !isActive && "text-foreground hover:bg-secondary hover:text-foreground"
-              )
-            }
-          >
-            <staticBottomItem.icon className="h-5 w-5" />
-            <span>{staticBottomItem.label}</span>
-          </NavLink>
+          {renderNavLink(staticBottomItem)}
         </RoleGuard>
 
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start gap-3 text-foreground hover:bg-secondary hover:text-foreground" 
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Sair</span>
-        </Button>
+        {/* Card do Usuário (Inspirado no Modelo Medicina UNINASSAU) */}
+        {profile && (
+          <div className="flex items-center justify-between rounded-xl bg-[#132238] border border-white/10 p-2.5 shadow-inner">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-9 w-9 rounded-full bg-[#D4AF37] text-[#0B1727] font-extrabold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                {userInitials}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-white truncate leading-tight">
+                  {profile?.first_name || 'Administrador'} {profile?.last_name || ''}
+                </span>
+                <span className="text-[10px] text-slate-400 truncate leading-tight">
+                  {user?.primaryEmailAddress?.emailAddress || profile?.email || 'usuario@uninassau.edu.br'}
+                </span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleLogout}
+              title="Sair"
+              className="p-1.5 text-slate-400 hover:text-[#D4AF37] hover:bg-white/10 rounded-lg transition-colors shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -361,8 +262,8 @@ export const SidebarContent = () => {
 
 export const Sidebar = () => {
   return (
-    <aside className="hidden bg-card md:fixed md:inset-y-0 md:left-0 md:z-10 md:block md:w-64 md:border-r">
+    <aside className="hidden bg-[#0B1727] md:fixed md:inset-y-0 md:left-0 md:z-20 md:block md:w-64 md:border-r md:border-white/10 shadow-xl">
       <SidebarContent />
     </aside>
   );
-};
+};

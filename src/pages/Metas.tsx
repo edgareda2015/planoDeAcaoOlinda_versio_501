@@ -7,6 +7,8 @@ import { GoalFilters } from "@/components/GoalFilters";
 import { useGoals } from "@/hooks/useGoals";
 import { format, startOfMonth } from "date-fns";
 
+import PageHeader from "@/components/PageHeader";
+
 const Metas = () => {
   const { data: allGoals, isLoading: isLoadingGoals } = useGoals();
   
@@ -17,7 +19,7 @@ const Metas = () => {
 
   // Função para forçar a atualização da tabela após o cadastro
   const handleGoalAdded = () => {
-    // O useGoals já invalida a query, não precisamos de nada aqui por enquanto.
+    // O useGoals já invalida a query
   };
 
   const filteredGoals = useMemo(() => {
@@ -36,13 +38,12 @@ const Metas = () => {
   }, [allGoals, selectedMonth, selectedSectorId, isLoadingGoals]);
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Gestão de Metas</h1>
-        <p className="text-muted-foreground">
-          Acompanhe e gerencie as metas de desempenho de cada setor.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        category="INDICADORES & DESEMPENHO"
+        title="Gestão de Metas"
+        description="Acompanhe, cadastre e gerencie as metas corporativas por período e setor responsável."
+      />
 
       {/* Módulo de Cadastro */}
       <Card className="p-6">

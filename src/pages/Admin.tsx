@@ -22,6 +22,8 @@ const SEMESTERS = Array.from({ length: 10 }, (_, i) => {
   ];
 }).flat();
 
+import PageHeader from "@/components/PageHeader";
+
 const Admin = () => {
   const { profile } = useAuth();
   const { activeVersion, setActiveVersion } = useVersion();
@@ -62,13 +64,12 @@ const Admin = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Gestão do Sistema</h1>
-        <p className="text-muted-foreground">
-          Gerencie os dados de base da aplicação, como setores e responsáveis.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        category="GOVERNANÇA & SISTEMA"
+        title="Gestão do Sistema"
+        description="Gerencie permissões, usuários, estrutura de setores e controle de semestres letivos."
+      />
 
       <Tabs defaultValue={defaultTab}>
         <TabsList className={cn(
